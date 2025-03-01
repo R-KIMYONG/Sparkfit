@@ -11,21 +11,20 @@ const DetailedPost = () => {
   const [openJoinModal, setOpenJoinModal] = useState(false);
   const [openCreateGroupModal, setCreateGroupModal] = useState(false);
 
-  const { data: posts, isLoading, isError } = useQuery({ queryKey: ['posts', id], queryFn: () => getPost(id) });
+  const { data: posts, isPending, isError } = useQuery({ queryKey: ['posts', id], queryFn: () => getPost(id) });
   const userId = posts?.created_by;
   const { data: user } = useQuery({ queryKey: ['user', userId], queryFn: () => getUser(userId), enabled: !!userId });
 
-  if (isLoading) {
+  if (isPending) {
     return <div>로딩중</div>;
   }
-
   if (isError) {
     return <div>오류 발생</div>;
   }
 
   return (
     <>
-      <div className="w-[1280px] m-[10%] auto md:w-[80%] min-[320px]:w-[80%] lg:w-[80%] lg:mx-auto lg:ml-[150px]  md:ml-[130px] md:mx-0px auto; sm:w-[80%] sm:mx-auto sm:ml-[110px] ">
+      <div className="w-[1280px] mt-[5%] auto md:w-[80%] min-[320px]:w-[80%] lg:w-[80%] lg:mx-auto lg:ml-[150px]  md:ml-[130px] md:mx-0px auto; sm:w-[80%] sm:mx-auto sm:ml-[110px] ">
         <div className="flex justify-between items-center w-full">
           <div className="text-3xl font-bold mb-2">{posts?.gather_name}</div>
           <button
@@ -54,7 +53,7 @@ const DetailedPost = () => {
         <div className=" rounded-full border-none flex flex-row items-center mb-10 bg-[#EBF7FF] p-5">
           <img src={user?.profile_image || '/Ellipse1.png'} alt="기본" className="w-[50px] h-[50px]" />
           <div className="flex flex-col mx-2 ">
-            <div className="text-sm mr-2">모임장</div>
+            <div className="text-sm mr-2">모임장 : {user?.username}</div>
             <div className="text-xl">{user?.nickname}</div>
           </div>
         </div>

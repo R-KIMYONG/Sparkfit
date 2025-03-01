@@ -53,12 +53,11 @@ const ClubInfo = ({ placeID }) => {
 
   const deadlineDate = theClubs ? new Date(theClubs[0].deadline) : null;
   const $status = getDeadlineStatus(deadlineDate);
-
   return (
     <>
-      <div className="p-4 min-h-40 border-2 cursor-pointer min-h-35  border-indigo-300 rounded-lg mb-5 hover:shadow-xl transition-all duration-300 ease-in-out">
+      <div className="p-4 min-h-40 border border-sky-100 cursor-pointer min-h-35   rounded-lg mb-5 hover:shadow-xl transition-all duration-300 ease-in-out">
         <div className="flex justify-between">
-          <div className="bg-[#efefef] rounded-md px-3 py-2 mb-2 text-center w-[120px]">{theClubs[0].sports_name}</div>
+          <div className="bg-[#efefef] rounded-md px-3 py-2 mb-2 text-center">{theClubs[0].sports_name}</div>
           <STDeadline $status={$status}>{theClubs[0].deadline}</STDeadline>
         </div>
         <div className="flex flex-col">
@@ -86,9 +85,9 @@ export const STDeadline = styled.div`
       case 'dayFuture':
         return '#82C0F9';
       case 'dayToday':
-        return '#b1c3f2F';
+        return '#b1c3f2';
       case 'dayPast':
-        return '#f7a9a9f';
+        return '#f7a9a9';
       default:
         return 'gray';
     }

@@ -267,7 +267,7 @@ export default function Sidebar() {
               결과 : {searchResults.length > 99 ? '99+' : searchResults.length}
             </span>
           </form>
-          <div className="mt-4 h-[25rem] overflow-y-scroll text-xs">
+          <div className="h-[25rem] overflow-y-scroll text-xs scrollbar-hide">
             {searchResults.length > 0 ? (
               <ul className="divide-y divide-gray-200">
                 {searchResults.map((item) => (
