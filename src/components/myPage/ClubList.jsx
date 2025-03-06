@@ -1,5 +1,4 @@
 import supabase from '@/supabase/supabaseClient';
-import { useUserStore } from '@/zustand/auth.store';
 import { useQuery } from '@tanstack/react-query';
 import { AiFillThunderbolt, AiOutlineThunderbolt } from 'react-icons/ai';
 import { RiGroupLine } from 'react-icons/ri';
@@ -7,64 +6,86 @@ import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import ClubInfo, { STDeadline } from './ClubInfo';
 import { STSection } from './MyPage';
-
+import { useEffect, useState } from 'react';
+import dayjs from 'dayjs';
 const ClubList = () => {
-  const userData = useUserStore((state) => state.userData);
   const navigate = useNavigate();
-
+  const [userId, setUserData] = useState(null);
   const getMyGathering = async () => {
-    const { data, error } = await supabase.from('Contracts').select('place_id').eq('user_id', userData.user.id);
+    const { data, error } = await supabase.from('Contracts').select('place_id').eq('user_id', userId);
     if (error) {
       console.log(error);
     }
     return data;
   };
 
-  const { data: theGatherings } = useQuery({
-    queryKey: ['myGathering'],
-    queryFn: getMyGathering
-  });
+  useEffect(() => {
+    const authToken = localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token');
 
+    if (authToken) {
+      try {
+        const parsedToken = JSON.parse(authToken);
+        const userId = parsedToken?.user?.id;
+        setUserData(userId);
+      } catch (error) {
+        console.error('Token parsing error:', error);
+      }
+    } else {
+      console.log('No auth token found in localStorage');
+    }
+  }, []);
+
+  const { data: theGatherings } = useQuery({
+    queryKey: ['myGathering', userId],
+    queryFn: getMyGathering,
+    enabled: !!userId
+  });
   const getMyCreateGathering = async () => {
+    if (!userId) return null;
     const { data: CreateGathering, error: CreateGatheringError } = await supabase
       .from('Places')
       .select('region, sports_name, gather_name, deadline, id')
-      .eq('created_by', userData.user.id);
-
+      .eq('created_by', userId);
     if (CreateGatheringError) {
-      console.log(CreateGatheringError);
+      console.error(CreateGatheringError);
     }
-
-    return CreateGathering;
+    const sortedGatherings = CreateGathering?.sort((a, b) => {
+      const dateA = new Date(a.deadline);
+      const dateB = new Date(b.deadline);
+      return dateB - dateA; // 내림차순 정렬
+    });
+    return sortedGatherings;
   };
 
   const { data: MyCreateGathering } = useQuery({
-    queryKey: ['myCreateGathering'],
-    queryFn: getMyCreateGathering
+    queryKey: ['myCreateGathering', userId],
+    queryFn: getMyCreateGathering,
+    enabled: !!userId
   });
-
   const getDeadlineStatus = (deadlineDate) => {
-    const today = new Date();
-
-    if (!MyCreateGathering || MyCreateGathering.length === 0) {
+    // if (!MyCreateGathering || MyCreateGathering.length === 0 || !deadlineDate) {
+    //   return;
+    // }
+    if (!deadlineDate) {
       return;
     }
 
-    if (today < deadlineDate) {
+    const today = dayjs().startOf('day');
+    const deadline = dayjs(deadlineDate).startOf('day');
+
+    if (today.isBefore(deadline)) {
       return 'dayFuture';
-    } else if (today === deadlineDate) {
+    } else if (today.isSame(deadline, 'day')) {
       return 'dayToday';
     } else {
       return 'dayPast';
     }
   };
-
-  const deadlineDate =
-    MyCreateGathering && MyCreateGathering[0] && MyCreateGathering[0].deadline
-      ? new Date(MyCreateGathering[0].deadline)
-      : null;
-  const $status = getDeadlineStatus(deadlineDate);
-
+  // 모든 모임의 deadline 배열 추출
+  const MyCreateGatheringWithStatus = MyCreateGathering?.map((gathering) => {
+    const $status = getDeadlineStatus(gathering.deadline);
+    return { ...gathering, $status }; // 상태 추가
+  });
   const handleMoveToDetail = (place_id) => {
     Swal.fire({
       title: '모임 상세 페이지로 이동하시겠어요?',
@@ -121,22 +142,26 @@ const ClubList = () => {
                   <AiOutlineThunderbolt />
                   내가 만든 번개
                 </span>
-                {MyCreateGathering.map(({ region, sports_name, gather_name, deadline, id }, index) => (
-                  <li
-                    key={index + 1}
-                    onClick={() => handleMoveToDetail(id)}
-                    className="cursor-pointer p-4 min-h-35 border-2 border-indigo-300 rounded-lg mb-5 hover:shadow-xl transition-all duration-300 ease-in-out"
-                  >
-                    <div className="flex justify-between">
-                      <div className="bg-[#efefef] rounded-md px-3 py-2 mb-2 text-center w-[120px]">{sports_name}</div>
-                      <STDeadline $status={$status}>{deadline}</STDeadline>
-                    </div>
-                    <div className="flex flex-col">
-                      <div className="pb-2 text-xl mt-4 font-black truncate">{gather_name}</div>
-                      <div>{region}</div>
-                    </div>
-                  </li>
-                ))}
+                {MyCreateGatheringWithStatus.map(
+                  ({ region, sports_name, gather_name, deadline, id, $status }, index) => (
+                    <li
+                      key={index + 1}
+                      onClick={() => handleMoveToDetail(id)}
+                      className="cursor-pointer p-4 min-h-35 border border-teal-100 rounded-lg mb-5 hover:shadow-xl transition-all duration-300 ease-in-out"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="bg-[#efefef] rounded-md px-3 py-2 text-center w-[120px] text-sm">
+                          {sports_name}
+                        </div>
+                        <STDeadline $status={$status}>{deadline}</STDeadline>
+                      </div>
+                      <div className="flex flex-col">
+                        <div className="pb-2 text-base mt-4 font-black truncate">{gather_name}</div>
+                        <div className="text-sm">{region}</div>
+                      </div>
+                    </li>
+                  )
+                )}
               </ul>
             ) : (
               <div className="flex flex-col gap-4">

@@ -66,6 +66,15 @@ export default function Sidebar() {
   const searchPlace = useCallback(
     async (e) => {
       e.preventDefault();
+      if (!searchKeyword.trim()) {
+        Swal.fire({
+          title: '검색 실패',
+          text: '검색어를 입력하세요',
+          icon: 'warning',
+          confirmButtonText: '확인'
+        });
+        return;
+      }
       Swal.fire({
         title: '검색 중입니다...',
         allowOutsideClick: false,
@@ -74,6 +83,7 @@ export default function Sidebar() {
           Swal.showLoading();
         }
       });
+
       try {
         const { data, error } = await supabase
           .from('Places')
@@ -90,6 +100,7 @@ export default function Sidebar() {
           });
           return;
         }
+        console.log(data);
         setSearchResults([...data]);
         Swal.close();
       } catch (error) {
@@ -239,11 +250,11 @@ export default function Sidebar() {
         <div className="bg-white p-6 rounded-lg sm:w-2/3 absolute min-[320px]:translate-x-[-50%] min-[320px]:translate-y-[-50%] min-[320px]:top-[50%] min-[320px]:left-[50%] min-[320px]:w-[90%]">
           <div className="flex justify-between items-center mb-4">
             <h2 className="sm:text-2xl font-bold text-xl flex items-center gap-3">
-              <RiSearchLine /> Spark Fit 검색{' '}
+              <RiSearchLine /> SparkFit 검색{' '}
             </h2>
 
             <button onClick={closeModal} className="w-logowidth h-logoheight">
-              <RiCloseFill className="w-full h-full" />
+              <RiCloseFill className="w-full h-full hover:rotate-90 transition-transform" />
             </button>
           </div>
           <form onSubmit={searchPlace}>
@@ -258,16 +269,16 @@ export default function Sidebar() {
               />
               <button
                 type="submit"
-                className="bg-customLoginButton sm:px-5 text-white px-8 py-1 min-[320px]:w-1/6 min-[320px]:text-xs min-[320px]:px-2 rounded box-border font-bold text-lg"
+                className="bg-customLoginButton text-white py-1 min-[320px]:w-1/6 min-[320px]:text-xs min-[320px] rounded box-border font-bold text-sm"
               >
-                검색
+                Search
               </button>
             </div>
             <span className="text-xs text-gray-500">
               결과 : {searchResults.length > 99 ? '99+' : searchResults.length}
             </span>
           </form>
-          <div className="mt-4 h-[25rem] overflow-y-scroll text-xs">
+          <div className="h-[25rem] overflow-y-scroll text-xs scrollbar-hide">
             {searchResults.length > 0 ? (
               <ul className="divide-y divide-gray-200">
                 {searchResults.map((item) => (

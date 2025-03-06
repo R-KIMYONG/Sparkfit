@@ -1,7 +1,6 @@
 import supabase from '@/supabase/supabaseClient';
-import { useUserStore } from '@/zustand/auth.store';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { HiPencilSquare } from 'react-icons/hi2';
 import { RiUser3Line } from 'react-icons/ri';
 import Loading from '../GatheringPage/Loading';
@@ -10,32 +9,44 @@ import MyPageModal from './MyPageModal';
 
 const UserInfo = () => {
   const [myPageModal, setMyPageModal] = useState(false);
-  const userData = useUserStore((state) => state.userData);
+  const [userData, setUserData] = useState(null);
   const [nickname, setNickname] = useState('');
   const [image, setImage] = useState('/Ellipse1.png');
-
   const getUserInfo = async () => {
-    const { data, error } = await supabase
-      .from('userinfo')
-      .select('email, profile_image, username')
-      .eq('id', userData.user.id);
+    if (!userData) return;
+    const { data, error } = await supabase.from('userinfo').select('email, profile_image, username').eq('id', userData);
 
     if (error) {
       console.log(error);
     } else {
-      setNickname(data[0].nickname);
+      setNickname(data[0].username);
       setImage(data[0].profile_image || '/Ellipse1.png');
     }
     return data;
   };
+  useEffect(() => {
+    const authToken = localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token');
 
+    if (authToken) {
+      try {
+        const parsedToken = JSON.parse(authToken);
+        const userId = parsedToken?.user?.id;
+        setUserData(userId);
+      } catch (error) {
+        console.error('토큰 파싱 실패:', error);
+      }
+    } else {
+      console.log('토큰을 찾지 못했습니다.');
+    }
+  }, []);
   const {
     data: theUser,
     isPending,
     error: usersError
   } = useQuery({
     queryKey: ['Users'],
-    queryFn: getUserInfo
+    queryFn: getUserInfo,
+    enabled: !!userData
   });
 
   if (isPending) {

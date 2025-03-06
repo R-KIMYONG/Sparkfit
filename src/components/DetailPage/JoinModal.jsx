@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AlertModal from './AlertModal';
 import useOutsideClick from './useOutsideClick';
+import Swal from 'sweetalert2';
 
 const JoinModal = ({ close }) => {
   const { id } = useParams();
@@ -27,17 +28,24 @@ const JoinModal = ({ close }) => {
 
   const joinGroup = async () => {
     if (posts.created_by === user.id) {
-      alert('본인이 만든 모임에 참가 신청 할 수 없습니다');
-      close();
+      Swal.fire({
+        icon: 'warning',
+        title: '가입불가',
+        text: '본인이 만든 모임에 참가 시청할 수 없습니다.',
+        confirmButtonText: '확인'
+      }).then(() => close());
       return;
     }
 
     if (hasJoined) {
-      alert('두 번 신청할 수 없습니다');
-      close();
+      Swal.fire({
+        icon: 'error',
+        title: '이미 신청됨',
+        text: '두 번 신청할 수 없습니다.',
+        confirmButtonText: '확인'
+      }).then(() => close());
       return;
     }
-    alert('신청되었습니다');
     const { data, error } = await supabase
       .from('Contracts')
       .insert([{ gather_name: posts.gather_name, place_id: posts.id, user_id: user.id }])
@@ -45,15 +53,29 @@ const JoinModal = ({ close }) => {
 
     if (error) {
       console.error(error.message);
+      Swal.fire({
+        icon: 'error',
+        title: '신청 실패',
+        text: '신청 중 오류가 발생했습니다.',
+        confirmButtonText: '확인'
+      });
+      return;
     }
-    setOpenAlertModal(false);
-    close();
+    Swal.fire({
+      icon: 'success',
+      title: '신청 완료',
+      text: '모임 신청이 완료되었습니다!',
+      confirmButtonText: '확인'
+    }).then(() => {
+      setOpenAlertModal(false);
+      close();
+    });
   };
 
   return (
     <div className="fixed inset-0 w-full h-full bg-black bg-opacity-10 z-50">
       <div
-        className="h-auto rounded-lg min-[320px]:w-[80%] md:w-[50%] sm:w-[60%] bg-white absolute top-[20%] left-1/2 transform -translate-x-1/2 - translate-y-1/2"
+        className="h-auto rounded-lg min-[320px]:w-[80%] md:w-[50%] sm:w-[60%] bg-white absolute top-[10%] left-1/2 transform -translate-x-1/2 - translate-y-1/2"
         ref={modalRef}
       >
         <div className="py-5">

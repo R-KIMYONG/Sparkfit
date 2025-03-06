@@ -6,6 +6,7 @@ import { loginUser } from '@/api/profileApi';
 import { useQuery } from '@tanstack/react-query';
 import useMapStore from '@/zustand/map.store';
 import { useShallow } from 'zustand/react/shallow';
+import Swal from 'sweetalert2';
 
 const CreateGroupModal = ({ close }) => {
   const modalRef = useRef(null);
@@ -53,11 +54,19 @@ const CreateGroupModal = ({ close }) => {
 
     if (error) {
       console.error(error.message);
-      alert(`오류가 발생했습니다.`);
+      Swal.fire({
+        icon: 'error',
+        title: '오류 발생',
+        text: error.message || '오류가 발생했습니다.'
+      });
     } else {
-      alert('생성 되었습니다');
-
-      close();
+      Swal.fire({
+        icon: 'success',
+        title: '모임 생성 완료',
+        text: '모임이 성공적으로 생성되었습니다!'
+      }).then(() => {
+        close;
+      });
     }
   };
 

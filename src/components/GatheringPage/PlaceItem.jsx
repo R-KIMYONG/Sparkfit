@@ -22,7 +22,7 @@ const PlaceItem = ({ place }) => {
           <div className="md:block sm:hidden">
             <button
               onClick={() => navigate(`/detail/${place.id}`)}
-              className="min-[320px]:hidden md:block transition-all duration-300 ease-in-out bg-[#efefef] rounded-lg px-8 py-3 text-sm text-[#2e2e2e] hover:bg-[#dddddd]"
+              className="min-[320px]:hidden md:block transition-all duration-300 ease-in-out bg-[#efefef] rounded-lg px-4 py-2 text-sm text-[#2e2e2e] hover:bg-[#dddddd] text-xs"
             >
               상세보기
             </button>
@@ -32,7 +32,7 @@ const PlaceItem = ({ place }) => {
         <p className="text-sm lg:w-[80%] md:w-[100%] sm:w-full overflow-hidden text-ellipsis line-clamp-2 ">
           {place.texts}
         </p>
-        <p className="text-[#999] text-xs">{`* 모집기간 ${place.deadline}`}</p>
+        <p className="text-[#999] text-xs">{`모집기간 ${place.deadline}`}</p>
 
         <div className="sm:block md:hidden">
           <button

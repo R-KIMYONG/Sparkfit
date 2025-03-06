@@ -6,7 +6,7 @@ export const useAuthStore = create(
     isAuthenticated: false,
 
     checkAuthToken: () => {
-      set({ isAuthenticated: !!localStorage.getItem('sb-ageijospngqmyzptvsoo-auth-token') });
+      set({ isAuthenticated: !!localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token') });
     }
   }))
 );
