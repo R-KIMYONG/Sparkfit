@@ -1,5 +1,4 @@
 import supabase from '@/supabase/supabaseClient';
-import { useUserStore } from '@/zustand/auth.store';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { HiPencilSquare } from 'react-icons/hi2';
@@ -34,10 +33,10 @@ const UserInfo = () => {
         const userId = parsedToken?.user?.id;
         setUserData(userId);
       } catch (error) {
-        console.error('Token parsing error:', error);
+        console.error('토큰 파싱 실패:', error);
       }
     } else {
-      console.log('No auth token found in localStorage');
+      console.log('토큰을 찾지 못했습니다.');
     }
   }, []);
   const {

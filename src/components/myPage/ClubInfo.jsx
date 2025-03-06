@@ -2,7 +2,7 @@ import supabase from '@/supabase/supabaseClient';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import Loading from '../GatheringPage/Loading';
-
+import dayjs from 'dayjs';
 const ClubInfo = ({ placeID }) => {
   const MyClubLists = async () => {
     const { data: mylist, error } = await supabase
@@ -35,34 +35,32 @@ const ClubInfo = ({ placeID }) => {
     return <Loading />;
   }
 
-  const getDeadlineStatus = (deadlineDate) => {
-    const today = new Date();
+  const getDeadlineStatus = (deadlineDateString) => {
+    if (!deadlineDateString) return;
 
-    if (!theClubs || theClubs.length === 0) {
-      return;
-    }
+    const today = dayjs().startOf('day');
+    const deadline = dayjs(deadlineDateString).startOf('day');
 
-    if (today < deadlineDate) {
+    if (today.isBefore(deadline)) {
       return 'dayFuture';
-    } else if (today === deadlineDate) {
+    } else if (today.isSame(deadline)) {
       return 'dayToday';
     } else {
       return 'dayPast';
     }
   };
 
-  const deadlineDate = theClubs ? new Date(theClubs[0].deadline) : null;
-  const $status = getDeadlineStatus(deadlineDate);
+  const $status = theClubs && theClubs.length > 0 ? getDeadlineStatus(theClubs[0].deadline) : null;
   return (
     <>
-      <div className="p-4 min-h-40 border border-sky-100 cursor-pointer min-h-35   rounded-lg mb-5 hover:shadow-xl transition-all duration-300 ease-in-out">
-        <div className="flex justify-between">
-          <div className="bg-[#efefef] rounded-md px-3 py-2 mb-2 text-center">{theClubs[0].sports_name}</div>
+      <div className="p-4 min-h-35 border border-sky-100 cursor-pointer min-h-35   rounded-lg mb-5 hover:shadow-xl transition-all duration-300 ease-in-out">
+        <div className="flex justify-between items-center">
+          <div className="bg-[#efefef] rounded-md px-3 py-2 text-center text-sm">{theClubs[0].sports_name}</div>
           <STDeadline $status={$status}>{theClubs[0].deadline}</STDeadline>
         </div>
         <div className="flex flex-col">
-          <div className="pb-2 text-xl mt-4 font-black truncate">{theClubs[0].gather_name}</div>
-          <div>{theClubs[0].region}</div>
+          <div className="pb-2 text-base mt-4 font-black truncate">{theClubs[0].gather_name}</div>
+          <div className="text-sm">{theClubs[0].region}</div>
         </div>
       </div>
     </>
@@ -76,6 +74,8 @@ export const STDeadline = styled.div`
   border-radius: 5px;
   color: white;
   font-weight: bold;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   text-align: center;
   @media screen and (max-width: 1024px) {
     width: 100%;

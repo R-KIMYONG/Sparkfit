@@ -1,13 +1,28 @@
 import supabase from '@/supabase/supabaseClient';
-import { useUserStore } from '@/zustand/auth.store';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import useOutsideClick from '../DetailPage/useOutsideClick';
 
 const MyPageModal = ({ close, nickname, setNickname, setImage }) => {
   const [newNickname, setNewNickname] = useState(nickname);
   const [file, setFile] = useState(null);
-  const userData = useUserStore((state) => state.userData);
+  const [userData, setUserData] = useState(null);
   const myModalRef = useRef(null);
+
+  useEffect(() => {
+    const authToken = localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token');
+
+    if (authToken) {
+      try {
+        const parsedToken = JSON.parse(authToken);
+        const userId = parsedToken?.user?.id;
+        setUserData(userId);
+      } catch (error) {
+        console.error('토큰 파싱 실패:', error);
+      }
+    } else {
+      console.log('토큰을 찾지 못했습니다.');
+    }
+  }, []);
 
   const handleCloseModal = () => {
     close?.();
@@ -18,8 +33,7 @@ const MyPageModal = ({ close, nickname, setNickname, setImage }) => {
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
   };
-
-  const userID = userData.user.id;
+  const userID = userData;
   const handleProfile = async () => {
     try {
       if (file) {
