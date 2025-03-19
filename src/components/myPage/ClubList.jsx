@@ -12,11 +12,16 @@ const ClubList = () => {
   const navigate = useNavigate();
   const [userId, setUserData] = useState(null);
   const getMyGathering = async () => {
-    const { data, error } = await supabase.from('Contracts').select('place_id').eq('user_id', userId);
+    const { data, error } = await supabase.from('Contracts').select('*').eq('user_id', userId);
     if (error) {
       console.log(error);
     }
-    return data;
+    const sortedGatherings = data?.sort((a, b) => {
+      const dateA = new Date(a.created_at);
+      const dateB = new Date(b.created_at);
+      return dateB - dateA; // 내림차순 정렬
+    });
+    return sortedGatherings;
   };
 
   useEffect(() => {
@@ -112,7 +117,7 @@ const ClubList = () => {
           <div className="flex flex-col gap-4 w-full">
             {theGatherings && theGatherings.length > 0 ? (
               <ul className="truncate">
-                <span className="flex border-b-2 border-slate-300 mb-5 text-lg items-center">
+                <span className="flex border-b-2 border-slate-300 mb-5 text-xs items-center pb-2">
                   <AiFillThunderbolt />
                   내가 가입한 번개
                 </span>
@@ -124,11 +129,11 @@ const ClubList = () => {
               </ul>
             ) : (
               <div className="flex flex-col gap-4 w-full">
-                <span className="flex border-b-2 border-slate-300 mb-5 text-lg items-center">
+                <span className="flex border-b-2 border-slate-300 mb-5 text-xs items-center pb-2">
                   <AiFillThunderbolt />
                   내가 가입한 번개
                 </span>
-                <div className="flex mx-auto text-slate-400">
+                <div className="flex mx-auto text-slate-400 items-center">
                   가입한 번개 <AiFillThunderbolt /> 모임이 없어요!
                 </div>
               </div>
@@ -138,7 +143,7 @@ const ClubList = () => {
           <div className="flex flex-col gap-4 w-full">
             {MyCreateGathering && MyCreateGathering.length > 0 ? (
               <ul>
-                <span className="flex border-b-2 border-slate-300 mb-5 text-lg items-center">
+                <span className="flex border-b-2 border-slate-300 mb-5 text-xs items-center pb-2">
                   <AiOutlineThunderbolt />
                   내가 만든 번개
                 </span>
@@ -165,11 +170,11 @@ const ClubList = () => {
               </ul>
             ) : (
               <div className="flex flex-col gap-4">
-                <span className="flex border-b-2 border-slate-300 mb-5 text-lg items-center">
+                <span className="flex border-b-2 border-slate-300 mb-5 text-xs items-center pb-2">
                   <AiOutlineThunderbolt />
                   내가 만든 번개
                 </span>
-                <div className="flex mx-auto text-slate-400">
+                <div className="flex mx-auto text-slate-400 items-center">
                   만든 번개 <AiOutlineThunderbolt /> 모임이 없어요!
                 </div>
               </div>

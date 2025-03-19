@@ -15,3 +15,8 @@
 body {
   font-family: 'Pretendard-Regular', sans-serif;
 }
+
+.css-13cymwt-control {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.375rem !important;
+}

@@ -11,7 +11,7 @@ function searchAddressToCoordinate(
   marker,
   user
 ) {
-  const searchedValue = searchInputRef.value;
+  const searchedValue = searchInputRef.value.trim();
 
   if (!searchedValue) {
     swal('error', '검색어를 입력해주세요');

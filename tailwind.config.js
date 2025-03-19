@@ -9,6 +9,7 @@ export default {
         customSignupButton: '#E4E4E4',
         customSocialButton: '#FFD056',
         'btn-blue': '#82C0F9',
+        'btn-red':'red',
         default: '#efefef'
       },
       boxShadow: {
@@ -17,10 +18,10 @@ export default {
       },
       width: {
         logowidth: '31px',
-        iconwidth: '24px'
+        iconwidth: '18px'
       },
       height: {
-        iconheight: '24px',
+        iconheight: '18px',
         logoheight: '31px',
         'calc-full-minus-110': '90%'
       },

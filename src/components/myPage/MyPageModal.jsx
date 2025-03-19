@@ -2,12 +2,12 @@ import supabase from '@/supabase/supabaseClient';
 import { useEffect, useRef, useState } from 'react';
 import useOutsideClick from '../DetailPage/useOutsideClick';
 
-const MyPageModal = ({ close, nickname, setNickname, setImage }) => {
+const MyPageModal = ({ close, nickname, setNickname, setImage, introduce, setIntroduce }) => {
   const [newNickname, setNewNickname] = useState(nickname);
+  const [newIntroduce, setNewIntroduce] = useState(introduce);
   const [file, setFile] = useState(null);
   const [userData, setUserData] = useState(null);
   const myModalRef = useRef(null);
-
   useEffect(() => {
     const authToken = localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token');
 
@@ -33,26 +33,36 @@ const MyPageModal = ({ close, nickname, setNickname, setImage }) => {
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
   };
-  const userID = userData;
   const handleProfile = async () => {
     try {
+      if (!userData) {
+        console.error('유저 정보를 찾을 수 없습니다.');
+        return;
+      }
+
+      let publicUrl = null;
       if (file) {
-        const fileName = `image_${userID}_${Date.now()}`;
+        const fileName = `image_${userData}_${Date.now()}`;
 
-        const { data: profileImage, error } = await supabase.storage.from('imageFile').upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+        const { data: profileImage, error: uploadError } = await supabase.storage
+          .from('imageFile')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
 
-        const { data: publicUrlData } = await supabase.storage.from('imageFile').getPublicUrl(fileName);
-        const publicUrl = publicUrlData.publicUrl;
+        if (uploadError) return;
+
+        const { data: publicUrlData } = supabase.storage.from('imageFile').getPublicUrl(fileName);
+        publicUrl = publicUrlData.publicUrl;
+        console.log(publicUrl);
 
         const { data: updateData, error: updateError } = await supabase
-          .from('Users')
+          .from('userinfo')
           .update({
             profile_image: publicUrl
           })
-          .eq('user_id', userID);
+          .eq('id', userData);
 
         if (updateError) {
           console.log('updateError : ', updateError);
@@ -64,14 +74,16 @@ const MyPageModal = ({ close, nickname, setNickname, setImage }) => {
       const { data: userNameData, error: userNameError } = await supabase
         .from('userinfo')
         .update({
-          username: newNickname
+          username: newNickname,
+          introduce: newIntroduce
         })
-        .eq('id', userID);
+        .eq('id', userData);
 
       if (userNameError) {
         console.log('username error : ', userNameError);
       } else {
         setNickname(newNickname);
+        setIntroduce(newIntroduce);
       }
     } catch (error) {
       console.log(error);
@@ -80,7 +92,7 @@ const MyPageModal = ({ close, nickname, setNickname, setImage }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-10 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
       <div className="h-auto rounded-lg w-[500px] bg-white" ref={myModalRef}>
         <div className="m-2 flex justify-center items-center">
           <h3>내 정보</h3>
@@ -91,11 +103,28 @@ const MyPageModal = ({ close, nickname, setNickname, setImage }) => {
               닉네임
             </label>
             <input
-              className="px-5 py-2.5 rounded-md m-1.5 font-semibold border"
+              className="px-2 py-2 rounded-md m-1.5 font-semibold border"
               type="text"
               value={newNickname}
               onChange={(e) => setNewNickname(e.target.value)}
               id="newNickname"
+            />
+            <label htmlFor="newIntroduce" className="ml-1">
+              자기소개
+            </label>
+            <textarea
+              className="px-2 py-2 rounded-md m-1.5 font-semibold border text-sm h-full"
+              type="text"
+              style={{ resize: 'none' }}
+              value={newIntroduce}
+              placeholder={
+                introduce.length > 0 ? '자기소개를 수정하세요 (최대 100자)' : '자기소개를 추가하세요 (최대 100자)'
+              }
+              onChange={(e) => setNewIntroduce(e.target.value)}
+              id="newIntroduce"
+              autoComplete="off"
+              rows={4}
+              maxLength={100}
             />
             <label htmlFor="profile" className="ml-1">
               프로필 사진
@@ -111,12 +140,12 @@ const MyPageModal = ({ close, nickname, setNickname, setImage }) => {
             <button
               type="button"
               onClick={handleProfile}
-              className="text-base px-5 py-2.5 border-none bg-btn-blue rounded-md text-white m-1.5 font-semibold cursor-pointer"
+              className="text-xs px-2 py-1.5 border-none bg-btn-blue rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-blue-400 transition-all"
             >
               변경하기
             </button>
             <button
-              className="text-base px-5 py-2.5 border-none bg-btn-blue rounded-md text-white m-1.5 font-semibold cursor-pointer"
+              className="text-xs px-2 py-1.5 border-none bg-btn-red rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-red-400 transition-all"
               type="button"
               onClick={close}
             >
