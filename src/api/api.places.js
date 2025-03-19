@@ -10,7 +10,7 @@ class PlacesApi {
 
     if (error) {
       console.log('error => ', error);
-      throw new Error('가져오기 실패했다 => ', error);
+      throw new Error('모임 가져오기 실패 => ', error);
     }
 
     return data;

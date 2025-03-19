@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import Mainpage from './Mainpage';
 
 function NavermapScriptComponent() {
-  const { data: user, isLoading } = useQuery({ queryKey: ['user'], queryFn: loginUser });
+  const { data: user, isLoading: isPending } = useQuery({ queryKey: ['user'], queryFn: loginUser });
   const { data: contracts, isLoading: isContractsLoading } = useQuery({
     queryKey: ['contracts'],
     queryFn: () => contractsApi.getContracts(),
@@ -37,7 +37,7 @@ function NavermapScriptComponent() {
     };
   }, []);
 
-  if (isLoading || !isScriptLoaded || isContractsLoading) {
+  if (isPending || !isScriptLoaded || isContractsLoading) {
     return <Loading />;
   }
 

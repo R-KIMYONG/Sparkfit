@@ -5,14 +5,15 @@ export const useUserStore = create((set) => ({
   userData: null,
   loading: true,
   error: null,
-  signUp: async (email, password, nickname) => {
+  signUp: async (email, password, nickname, gender) => {
     try {
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            nickname
+            nickname,
+            gender
           }
         }
       });
@@ -23,7 +24,7 @@ export const useUserStore = create((set) => ({
 
       const { data: userData, error: userError } = await supabase
         .from('userinfo')
-        .insert([{ id: userId, email, username: nickname }]);
+        .insert([{ id: userId, email, username: nickname, gender }]);
       if (userError) {
         throw new Error(userError.message);
       }

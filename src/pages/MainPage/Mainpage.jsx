@@ -137,18 +137,18 @@ function Mainpage({ user = null, contracts = [] }) {
     <>
       {openCreateGroupModal && <CreateGroupModal close={handleModalClose} />}
       <section className="relative flex w-dvw h-dvh">
-        <form className="sm:left-[15%] md:left-[10%] lg:left-[7%] absolute z-10 flex items-center gap-1 rounded-lg bg-white p-1 border border-gray-300 box-border left-5 top-5 ml-1">
+        <form className="sm:left-[15%] md:left-[10%] lg:left-[7%] absolute z-10 flex justify-between items-center gap-1 rounded bg-white p-1 border border-gray-300 box-border left-5 top-5 ml-1 w-64">
           <input
             type="text"
             id="search-input"
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 py-[3px] px-2"
+            className="bg-gray-50 border border-gray-300 text-gray-900 rounded focus:ring-blue-500 focus:border-blue-500 py-[3px] px-2 text-xs flex-grow"
             ref={searchInputRef}
-            placeholder="위치를 입력해주세요."
+            placeholder="지번/도로명 주소를 입력해주세요."
           />
           <button
             type="submit"
             id="search-button"
-            className="bg-btn-blue hover:bg-blue-4000 text-white font-bold py-1 px-3 rounded text-xs"
+            className="bg-btn-blue hover:bg-blue-4000 text-white font-bold py-1 px-2 rounded text-xs"
             ref={searchButtonRef}
           >
             위치검색

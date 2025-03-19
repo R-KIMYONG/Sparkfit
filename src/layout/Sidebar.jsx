@@ -2,53 +2,49 @@ import supabase from '@/supabase/supabaseClient';
 import { useUserStore } from '@/zustand/auth.store';
 import { usePlacesCount } from '@/zustand/placescount.store';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  RiArrowGoBackLine,
-  RiCloseFill,
-  RiGroupLine,
-  RiHome2Line,
-  RiInformationFill,
-  RiLogoutBoxRLine,
-  RiSearchLine,
-  RiUser3Line
-} from 'react-icons/ri';
+import { RiArrowGoBackLine, RiCloseFill, RiInformationFill, RiSearchLine } from 'react-icons/ri';
 import Modal from 'react-modal';
 import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import logo from './../assets/logo.png';
+import { getSidebarMenus, getBottomMenus, getMobileMenus } from './sidebarMenus';
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const [activeItem, setActiveItem] = useState('');
+  const [activeItem, setActiveItem] = useState('홈');
   const signOut = useUserStore((state) => state.signOut);
   const checkSignIn = useUserStore((state) => state.checkSignIn);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const currentDate = new Date().toISOString().split('T')[0];
-  const userData = useUserStore((state) => state.userData);
-  const { placesCount, startFetching, stopFetching, getPreviousCount, previousCount, updateApplicant } = usePlacesCount(
+  const { placesCount, contractsCount, startFetching, stopFetching, hasNewContracts, hasNewPlaces } = usePlacesCount(
     (state) => state
   );
+  const [userId, setUserId] = useState(null);
+
 
   useEffect(() => {
-    if (userData) {
-      getPreviousCount(userData.user.id);
-      startFetching(userData.user.id);
-    }
-  }, [checkSignIn, getPreviousCount, startFetching, userData]);
+    const authToken = localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token');
 
-  const handleUpdateAlarm = async () => {
-    try {
-      if (userData) {
-        await updateApplicant(userData.user.id, placesCount);
-        getPreviousCount(userData.user.id);
+    if (authToken) {
+      try {
+        const parsedToken = JSON.parse(authToken);
+        const userId = parsedToken?.user?.id;
+        setUserId(userId);
+      } catch (error) {
+        console.error('토큰 파싱 실패:', error);
       }
-      navigate('/gathering');
-    } catch (error) {
-      console.error('Error', error);
+    } else {
+      console.log('토큰을 찾지 못했습니다.');
     }
-  };
+    if (userId) {
+      startFetching(userId);
+    }
+    return () => {
+      stopFetching();
+    };
+  }, [checkSignIn, startFetching, stopFetching, userId]);
 
   const openModal = () => {
     setActiveItem('검색');
@@ -71,8 +67,10 @@ export default function Sidebar() {
           title: '검색 실패',
           text: '검색어를 입력하세요',
           icon: 'warning',
-          confirmButtonText: '확인'
+          confirmButtonText: '확인',
+          cancelButtonText: '취소'
         });
+        setSearchResults([]);
         return;
       }
       Swal.fire({
@@ -88,7 +86,9 @@ export default function Sidebar() {
         const { data, error } = await supabase
           .from('Places')
           .select()
-          .or(`region.ilike.%${searchKeyword}%,sports_name.ilike.%${searchKeyword}%`)
+          .or(
+            `region.ilike.%${searchKeyword}%,sports_name.ilike.%${searchKeyword}%,gather_name.ilike.%${searchKeyword}%`
+          )
           .gt('deadline', currentDate)
           .order('deadline', { ascending: true });
         if (error) {
@@ -100,7 +100,6 @@ export default function Sidebar() {
           });
           return;
         }
-        console.log(data);
         setSearchResults([...data]);
         Swal.close();
       } catch (error) {
@@ -115,7 +114,6 @@ export default function Sidebar() {
     },
     [searchKeyword]
   );
-
   const handleSignOut = async () => {
     try {
       const result = await Swal.fire({
@@ -124,7 +122,8 @@ export default function Sidebar() {
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
-        confirmButtonText: '확인'
+        confirmButtonText: '확인',
+        cancelButtonText: '취소'
       });
 
       if (result.isConfirmed) {
@@ -147,92 +146,104 @@ export default function Sidebar() {
       });
     }
   };
+  const sidebarMenus = getSidebarMenus({ openModal, navigate, placesCount, hasNewPlaces });
+  const bottomMenus = getBottomMenus({ navigate, handleSignOut, hasNewContracts });
+  const mobileMenus = getMobileMenus({ navigate, openModal, handleSignOut, placesCount, hasNewPlaces });
   return (
     <>
-      <div className="bg-white shadow-sidebarshaow fixed top-0 left-0 h-lvh w-20 justify-center items-center h-screen sm:flex hidden text-sm z-10">
+      <div className="bg-white shadow-sidebarshaow fixed top-0 left-0 h-lvh w-16 justify-center items-center sm:flex hidden text-sm z-10">
         <div className="h-calc-full-minus-110 w-11 mx-auto flex flex-col justify-between">
+          {/* PC 사이드바 메뉴 */}
           <div className="h-80 flex flex-col justify-between items-center">
             <h1 className="w-logowidth h-logoheight">
               <Link className="block size-full" to="/">
                 <img className="size-full block" src={logo} alt="logo" />
               </Link>
             </h1>
-
-            <ul className="h-60 flex flex-col justify-around items-center text-xs">
-              <SidebarItem icon={RiSearchLine} text="검색" onClick={openModal} />
-              <SidebarItem
-                icon={RiGroupLine}
-                text="모임"
-                placesCount={placesCount}
-                previousCount={previousCount}
-                onClick={handleUpdateAlarm}
-              />
-              <SidebarItem
-                icon={RiArrowGoBackLine}
-                text="뒤로가기"
-                onClick={() => {
-                  navigate(-1);
-                }}
-              />
-            </ul>
+            <nav className="sidebar">
+              <ul className="w-full flex flex-col justify-start items-center text-xs gap-16">
+                {sidebarMenus.map(({ icon: Icon, text, onClick, hasAlarm }, index) => {
+                  return (
+                    <li
+                      key={index}
+                      onClick={() => {
+                        setActiveItem(text);
+                        onClick();
+                        if (text === '모임') {
+                          stopFetching('places');
+                        }
+                      }}
+                      className="cursor-pointer text-center relative"
+                    >
+                      <Icon className="absolute right-1/2 -top-1/2 w-[15px] h-[15px] translate-x-1/2 -translate-y-1/2" />
+                      <p className="mt-1">{text}</p>
+                      {hasAlarm && (
+                        <RiInformationFill className="absolute right-[-5px] top-[-25px] w-[15px] h-[15px] text-red-500" />
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
           </div>
 
-          <div className="h-36">
-            <ul className="text-xs h-full flex flex-col justify-around items-center">
-              <SidebarItem
-                icon={RiUser3Line}
-                text="내 계정"
-                onClick={() => {
-                  navigate('/mypage');
-                }}
-              />
-              <SidebarItem icon={RiLogoutBoxRLine} text="로그아웃" onClick={handleSignOut} />
+          <div className="bottom-menu">
+            <ul className="w-full flex flex-col justify-start items-center text-xs gap-16">
+              {bottomMenus.map(({ icon: Icon, text, onClick }, index) => (
+                <li
+                  key={index}
+                  onClick={() => {
+                    onClick();
+                    if (text === '내 계정') {
+                      stopFetching('contracts');
+                    }
+                  }}
+                  className="cursor-pointer text-center relative"
+                >
+                  <Icon className="absolute right-1/2 -top-1/2 w-[15px] h-[15px] translate-x-1/2 -translate-y-1/2" />
+                  <p className="mt-1">{text}</p>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
       </div>
+      {/* Mobile 사이드바 메뉴 */}
+      <nav>
+        <ul className="bg-white shadow-bottomsidebarshaow fixed bottom-0 left-0 w-full h-16 flex justify-around items-center sm:hidden text-sm z-10">
+          {mobileMenus.map(({ icon: Icon, text, onClick, hasAlarm }, index) => (
+            <li
+              key={index}
+              onClick={() => {
+                setActiveItem(text);
+                onClick();
+                switch (text) {
+                  case '모임':
+                    stopFetching('places');
+                    break;
+                  case '내 계정':
+                    stopFetching('contracts');
+                  default:
+                    break;
+                }
+              }}
+              className={`mx-auto transition-all cursor-pointer text-center flex flex-col items-center hover:text-[#82C0F9] ${
+                activeItem === text ? 'text-[#82C0F9]' : ''
+              }`}
+            >
+              <Icon />
+              <p className="text-xs mt-1">{text}</p>
+              {hasAlarm && (
+                <RiInformationFill className="absolute right-[-5px] top-[-25px] w-[15px] h-[15px] text-red-500" />
+              )}
+            </li>
+          ))}
+        </ul>
+      </nav>
 
-      <ul className="bg-white shadow-bottomsidebarshaow fixed bottom-0 left-0 w-full h-16 flex justify-around items-center sm:hidden text-sm z-10">
-        <SidebarItem
-          icon={RiHome2Line}
-          text="홈"
-          isActive={activeItem === '홈'}
-          onClick={() => {
-            setActiveItem('홈');
-            navigate('/');
-          }}
-        />
-        <SidebarItem
-          icon={RiGroupLine}
-          text="모임"
-          placesCount={placesCount}
-          previousCount={previousCount}
-          isActive={activeItem === '모임'}
-          onClick={() => {
-            setActiveItem('모임');
-            navigate('/gathering');
-          }}
-        />
-        <SidebarItem icon={RiSearchLine} text="검색" isActive={activeItem === '검색'} onClick={openModal} />
-        <SidebarItem
-          icon={RiUser3Line}
-          text="내 계정"
-          isActive={activeItem === '내 계정'}
-          onClick={() => {
-            setActiveItem('내 계정');
-            navigate('/mypage');
-          }}
-        />
-        <SidebarItem
-          icon={RiLogoutBoxRLine}
-          text="로그아웃"
-          isActive={activeItem === '로그아웃'}
-          onClick={handleSignOut}
-        />
-      </ul>
-      <div className="sm:hidden fixed bottom-20 right-5  cursor-pointer p-4 bg-slate-300 rounded-full flex justify-center items-center z-10">
+      <div className="sm:hidden fixed bottom-20 right-5  cursor-pointer p-2 bg-slate-300 rounded-full flex justify-center items-center z-10">
         <RiArrowGoBackLine
-          className="w-5 h-5"
+          className="w-4 h-4"
           text="뒤로가기"
           onClick={() => {
             navigate(-1);
@@ -243,9 +254,8 @@ export default function Sidebar() {
         isOpen={isModalOpen}
         onRequestClose={closeModal}
         contentLabel="번개 검색 모달"
-        className="modal inset-0 w-full h-full items-center z-50 "
+        className="modal inset-0 items-center z-50 "
         overlayClassName="overlay fixed inset-0 bg-black bg-opacity-50 absolute z-40"
-        shouldCloseOnOverlayClick={false}
       >
         <div className="bg-white p-6 rounded-lg sm:w-2/3 absolute min-[320px]:translate-x-[-50%] min-[320px]:translate-y-[-50%] min-[320px]:top-[50%] min-[320px]:left-[50%] min-[320px]:w-[90%]">
           <div className="flex justify-between items-center mb-4">
@@ -291,7 +301,7 @@ export default function Sidebar() {
                     <div className="flex justify-between items-center mt-2">
                       <div className="text-gray-500">
                         <span>{item.region}</span> | <span>{item.sports_name}</span> |{' '}
-                        <span>{item.created_at.slice(0, 10)}</span>
+                        <span>{item.created_at.slice(0, 10)}</span> | <span>모집인원 : {item.max_participants}</span>
                       </div>
                       <button
                         className="bg-customLoginButton text-white px-2 py-1 rounded box-border"
@@ -324,6 +334,6 @@ const SidebarItem = ({ icon: Icon, text, onClick, isActive, placesCount, previou
       <RiInformationFill className="absolute right-[-5px] top-[-5px] w-[15px] h-[15px] text-red-500" />
     )}
     <Icon className={`mx-auto w-iconwidth transition-all h-iconheight ${isActive ? 'text-customLoginButton' : ''}`} />
-    <p className={`mt-1.5 transition-all ${isActive ? 'text-[#82C0F9]' : ''}`}>{text}</p>
+    <p className={`mt-1 transition-all text-xs ${isActive ? 'text-[#82C0F9]' : ''}`}>{text}</p>
   </li>
 );
