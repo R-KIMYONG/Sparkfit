@@ -8,31 +8,32 @@ const MyPageModal = ({ close, nickname, setNickname, setImage, introduce, setInt
   const [file, setFile] = useState(null);
   const [userData, setUserData] = useState(null);
   const myModalRef = useRef(null);
-  useEffect(() => {
-    const authToken = localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token');
 
-    if (authToken) {
+  useEffect(() => {
+    const getUserData = () => {
+      const authToken = localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token');
+      if (!authToken) return console.log('토큰을 찾지 못했습니다.');
+
       try {
         const parsedToken = JSON.parse(authToken);
-        const userId = parsedToken?.user?.id;
-        setUserData(userId);
+        setUserData(parsedToken?.user?.id || null);
       } catch (error) {
         console.error('토큰 파싱 실패:', error);
       }
-    } else {
-      console.log('토큰을 찾지 못했습니다.');
-    }
+    };
+
+    getUserData();
   }, []);
 
   const handleCloseModal = () => {
+    setFile(null);
     close?.();
   };
 
   useOutsideClick(myModalRef, handleCloseModal);
 
-  const handleFileChange = (event) => {
-    setFile(event.target.files[0]);
-  };
+  const handleFileChange = (event) => setFile(event.target.files[0]);
+
   const handleProfile = async () => {
     try {
       if (!userData) {
@@ -55,7 +56,6 @@ const MyPageModal = ({ close, nickname, setNickname, setImage, introduce, setInt
 
         const { data: publicUrlData } = supabase.storage.from('imageFile').getPublicUrl(fileName);
         publicUrl = publicUrlData.publicUrl;
-        console.log(publicUrl);
 
         const { data: updateData, error: updateError } = await supabase
           .from('userinfo')
@@ -93,7 +93,7 @@ const MyPageModal = ({ close, nickname, setNickname, setImage, introduce, setInt
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
-      <div className="h-auto rounded-lg w-[500px] bg-white" ref={myModalRef}>
+      <div className={`h-auto rounded-lg bg-white w-2/3 md:w-auto`} ref={myModalRef}>
         <div className="m-2 flex justify-center items-center">
           <h3>내 정보</h3>
         </div>
@@ -118,7 +118,9 @@ const MyPageModal = ({ close, nickname, setNickname, setImage, introduce, setInt
               style={{ resize: 'none' }}
               value={newIntroduce}
               placeholder={
-                introduce.length > 0 ? '자기소개를 수정하세요 (최대 100자)' : '자기소개를 추가하세요 (최대 100자)'
+                (introduce?.length || 0) > 0
+                  ? '자기소개를 수정하세요 (최대 100자)'
+                  : '자기소개를 추가하세요 (최대 100자)'
               }
               onChange={(e) => setNewIntroduce(e.target.value)}
               id="newIntroduce"
@@ -130,7 +132,7 @@ const MyPageModal = ({ close, nickname, setNickname, setImage, introduce, setInt
               프로필 사진
             </label>
             <input
-              className="px-5 py-2.5 rounded-md m-1.5 font-semibold border"
+              className="px-5 py-2.5 rounded-md m-1.5 font-semibold border text-xs"
               type="file"
               id="profile"
               onChange={handleFileChange}
@@ -147,7 +149,7 @@ const MyPageModal = ({ close, nickname, setNickname, setImage, introduce, setInt
             <button
               className="text-xs px-2 py-1.5 border-none bg-btn-red rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-red-400 transition-all"
               type="button"
-              onClick={close}
+              onClick={handleCloseModal}
             >
               닫기
             </button>

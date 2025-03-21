@@ -1,6 +1,6 @@
 import SetInfoWindowContent from '@/components/navermap/SetInfoWindow';
-import swal from '../sweetalert/swal';
 import isMobile from './isMobile';
+import swal, { Swal } from '../sweetalert/swal';
 
 function searchAddressToCoordinate(
   infoWindow,
@@ -29,7 +29,9 @@ function searchAddressToCoordinate(
       }
 
       if (response.v2.meta.totalCount === 0) {
-        swal('error', `검색결과가 없습니다. 결과 ${response.v2.meta.totalCount}건`);
+        if (!Swal.getPopup()) {
+          swal('error', `검색결과가 없습니다. 결과 ${response.v2.meta.totalCount}건`);
+        }
         return;
       }
 

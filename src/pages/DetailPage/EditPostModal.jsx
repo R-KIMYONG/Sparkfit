@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import supabase from '@/supabase/supabaseClient';
 import { exercises } from '@/components/DetailPage/exercises';
 import Select from 'react-select';
+import isMobile from '@/utils/navermap/isMobile';
 const EditPostModal = ({ close, post, postId }) => {
   const [formData, setFormData] = useState({
     gatherName: post?.gather_name || '',
@@ -83,7 +84,7 @@ const EditPostModal = ({ close, post, postId }) => {
   ];
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50">
-      <div className="bg-white p-6 rounded-lg w-1/3">
+      <div className={`bg-white p-6 rounded-lg ${isMobile()? 'w-3/5' : 'w-2/6'}`}>
         <h2 className="text-xl font-semibold mb-4">모임 정보 수정</h2>
         <form
           onSubmit={(e) => {
@@ -137,7 +138,7 @@ const EditPostModal = ({ close, post, postId }) => {
               className="text-xs px-3 py-1.5 border-none bg-btn-blue rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-blue-400 transition-all"
               type="submit"
             >
-              수정 완료
+              완료
             </button>
             <button
               onClick={close}

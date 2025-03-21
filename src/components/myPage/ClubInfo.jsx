@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import Loading from '../GatheringPage/Loading';
 import dayjs from 'dayjs';
-const ClubInfo = ({ placeID }) => {
+const ClubInfo = ({ placeID, status }) => {
   const MyClubLists = async () => {
     const { data: mylist, error } = await supabase
       .from('Places')
@@ -16,7 +16,6 @@ const ClubInfo = ({ placeID }) => {
 
     return mylist;
   };
-
   const {
     data: theClubs,
     isPending,
@@ -55,12 +54,19 @@ const ClubInfo = ({ placeID }) => {
     <>
       <div className="p-4 min-h-35 border border-sky-100 cursor-pointer min-h-35   rounded-lg mb-5 hover:shadow-xl transition-all duration-300 ease-in-out">
         <div className="flex justify-between items-center">
-          <div className="bg-[#efefef] rounded-md px-3 py-2 text-center text-sm">{theClubs[0].sports_name}</div>
+          <div className="bg-[#efefef] rounded-md px-3 py-2 box-border text-center w-2/5 text-xs">
+            {theClubs[0].sports_name}
+          </div>
           <STDeadline $status={$status}>{theClubs[0].deadline}</STDeadline>
         </div>
-        <div className="flex flex-col">
-          <div className="pb-2 text-base mt-4 font-black truncate">{theClubs[0].gather_name}</div>
-          <div className="text-sm">{theClubs[0].region}</div>
+        <div className="flex justify-between items-center">
+          <div className="flex flex-col text-xs">
+            <p className="pb-2 mt-4 font-black truncate">{theClubs[0].gather_name}</p>
+            <p>{theClubs[0].region}</p>
+          </div>
+          <ApprovalResults $status={status}>
+            {status === 'rejected' ? '승인거절' : status === 'pending' ? '승인대기' : '가입완료'}
+          </ApprovalResults>
         </div>
       </div>
     </>
@@ -68,15 +74,15 @@ const ClubInfo = ({ placeID }) => {
 };
 
 export const STDeadline = styled.div`
-  max-width: 120px;
+  max-width: 50%;
   height: min-content;
-  padding: 8px 10px;
+  padding: 0.5rem 0.75rem;
   border-radius: 5px;
   color: white;
-  font-weight: bold;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
   text-align: center;
+  box-sizing: border-box;
   @media screen and (max-width: 1024px) {
     width: 100%;
   }
@@ -87,6 +93,30 @@ export const STDeadline = styled.div`
       case 'dayToday':
         return '#b1c3f2';
       case 'dayPast':
+        return '#f7a9a9';
+      default:
+        return 'gray';
+    }
+  }};
+`;
+
+export const ApprovalResults = styled.p`
+  max-width: 50%;
+  height: min-content;
+  padding: 0.5rem;
+  border-radius: 5px;
+  color: white;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-align: center;
+  box-sizing: border-box;
+  background-color: ${({ $status }) => {
+    switch ($status) {
+      case 'approved':
+        return '#82C0F9';
+      case 'peding':
+        return '#b1c3f2';
+      case 'rejected':
         return '#f7a9a9';
       default:
         return 'gray';

@@ -9,6 +9,8 @@ import { STSection } from './MyPage';
 import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 const ClubList = () => {
+  const [activeTab, setActiveTab] = useState('joined');
+
   const navigate = useNavigate();
   const [userId, setUserData] = useState(null);
   const getMyGathering = async () => {
@@ -105,82 +107,80 @@ const ClubList = () => {
       }
     });
   };
-
   return (
     <>
       <STSection>
         <h3 className="flex gap-2 mt-2 text-xl items-center">
           <RiGroupLine />내 번개 모임
         </h3>
-        <div className="min-[320px]:block min-[320px]:mb-[10%] sm:mb-0 lg:flex justify-between gap-5">
-          {/* 내가 가입한 모임 */}
-          <div className="flex flex-col gap-4 w-full">
-            {theGatherings && theGatherings.length > 0 ? (
-              <ul className="truncate">
-                <span className="flex border-b-2 border-slate-300 mb-5 text-xs items-center pb-2">
-                  <AiFillThunderbolt />
-                  내가 가입한 번개
-                </span>
-                {theGatherings.map(({ place_id }, index) => (
-                  <li key={index + 1} onClick={() => handleMoveToDetail(place_id)} className="cursor-pointer truncate">
-                    <ClubInfo placeID={place_id} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="flex flex-col gap-4 w-full">
-                <span className="flex border-b-2 border-slate-300 mb-5 text-xs items-center pb-2">
-                  <AiFillThunderbolt />
-                  내가 가입한 번개
-                </span>
-                <div className="flex mx-auto text-slate-400 items-center">
-                  가입한 번개 <AiFillThunderbolt /> 모임이 없어요!
-                </div>
-              </div>
-            )}
-          </div>
-          {/* 내가 만든 모임 */}
-          <div className="flex flex-col gap-4 w-full">
-            {MyCreateGathering && MyCreateGathering.length > 0 ? (
-              <ul>
-                <span className="flex border-b-2 border-slate-300 mb-5 text-xs items-center pb-2">
-                  <AiOutlineThunderbolt />
-                  내가 만든 번개
-                </span>
-                {MyCreateGatheringWithStatus.map(
-                  ({ region, sports_name, gather_name, deadline, id, $status }, index) => (
-                    <li
-                      key={index + 1}
-                      onClick={() => handleMoveToDetail(id)}
-                      className="cursor-pointer p-4 min-h-35 border border-teal-100 rounded-lg mb-5 hover:shadow-xl transition-all duration-300 ease-in-out"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="bg-[#efefef] rounded-md px-3 py-2 text-center w-[120px] text-sm">
-                          {sports_name}
-                        </div>
-                        <STDeadline $status={$status}>{deadline}</STDeadline>
-                      </div>
-                      <div className="flex flex-col">
-                        <div className="pb-2 text-base mt-4 font-black truncate">{gather_name}</div>
-                        <div className="text-sm">{region}</div>
-                      </div>
-                    </li>
-                  )
-                )}
-              </ul>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <span className="flex border-b-2 border-slate-300 mb-5 text-xs items-center pb-2">
-                  <AiOutlineThunderbolt />
-                  내가 만든 번개
-                </span>
-                <div className="flex mx-auto text-slate-400 items-center">
-                  만든 번개 <AiOutlineThunderbolt /> 모임이 없어요!
-                </div>
-              </div>
-            )}
-          </div>
+        <div className="flex mb-5 box-border w-full">
+          <button
+            className={`px-5 py-2 w-1/2 text-sm font-bold transition-all border-b-2 ${
+              activeTab === 'joined'
+                ? 'border-blue-500 text-blue-500 bg-customBackground rounded-t-xl'
+                : 'text-gray-400'
+            }`}
+            onClick={() => setActiveTab('joined')}
+          >
+            <AiFillThunderbolt className="inline-block mr-1" />
+            가입한 번개
+          </button>
+          <button
+            className={`px-5 py-2 w-1/2 text-sm font-bold transition-all border-b-2 ${
+              activeTab === 'created'
+                ? ' border-blue-500 text-blue-500 bg-customBackground rounded-t-xl'
+                : 'text-gray-400'
+            }`}
+            onClick={() => setActiveTab('created')}
+          >
+            <AiOutlineThunderbolt className="inline-block mr-1" />
+            만든 번개
+          </button>
         </div>
+        {activeTab === 'joined' ? (
+          // 내가 가입한 번개 리스트
+          theGatherings && theGatherings.length > 0 ? (
+            <ul className="truncate flex items-center flex-wrap gap-2">
+              {theGatherings.map(({ place_id, status }, index) => (
+                <li
+                  key={index + 1}
+                  onClick={() => handleMoveToDetail(place_id)}
+                  className="cursor-pointer truncate flex-auto"
+                >
+                  <ClubInfo placeID={place_id} status={status} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="flex mx-auto text-slate-400 items-center">
+              가입한 번개 <AiFillThunderbolt /> 모임이 없어요!
+            </div>
+          )
+        ) : // 내가 만든 번개 리스트
+        MyCreateGathering && MyCreateGathering.length > 0 ? (
+          <ul className="flex items-center flex-wrap gap-2">
+            {MyCreateGatheringWithStatus.map(({ region, sports_name, gather_name, deadline, id, $status }, index) => (
+              <li
+                key={index + 1}
+                onClick={() => handleMoveToDetail(id)}
+                className="cursor-pointer p-4 border border-teal-100 rounded-lg hover:shadow-xl  flex-auto"
+              >
+                <div className="flex justify-between items-center">
+                  <div className="bg-[#efefef] rounded-md px-3 py-2 text-center w-2/5 text-xs">{sports_name}</div>
+                  <STDeadline $status={$status}>{deadline}</STDeadline>
+                </div>
+                <div className="flex flex-col text-xs">
+                  <p className="pb-2 mt-4 font-black truncate">{gather_name}</p>
+                  <p>{region}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="flex mx-auto text-slate-400 items-center">
+            만든 번개 <AiOutlineThunderbolt /> 모임이 없어요!
+          </div>
+        )}
       </STSection>
     </>
   );

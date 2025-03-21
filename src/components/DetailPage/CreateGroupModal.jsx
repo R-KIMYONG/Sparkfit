@@ -133,13 +133,14 @@ const CreateGroupModal = ({ close }) => {
         </div>
         <form onSubmit={createGroupForm}>
           <div className="my-3 mx-3 flex flex-col gap-2">
-            {inputFields.map((field) =>
+            {inputFields.map((field,index) =>
               field.type === 'select' ? (
                 <Select
                   options={exercises.map((sport) => ({ label: sport, value: sport }))}
                   placeholder="스포츠명 선택"
                   onChange={(selected) => setFormData((prev) => ({ ...prev, sportsName: selected.value }))}
                   className="text-xs"
+                  key={index}
                 />
               ) : field.type === 'checkbox' ? (
                 <label key={field.name} className="flex items-center gap-2">
@@ -149,6 +150,7 @@ const CreateGroupModal = ({ close }) => {
                     checked={formData[field.name]}
                     onChange={handleInputChange}
                     autoComplete="off"
+                    key={index}
                   />
                   <span className="text-xs font-semibold">{field.placeholder}</span>
                 </label>

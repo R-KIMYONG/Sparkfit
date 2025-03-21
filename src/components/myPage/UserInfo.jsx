@@ -63,24 +63,27 @@ const UserInfo = () => {
       <h3 className="flex gap-2 border-b-2 border-slate-300 text-lg items-center pb-2">
         <RiUser3Line />내 정보
       </h3>
-      <div className="flex rounded-2xl p-4 gap-8 bg-customBackground justify-between items-center">
-        <div className="flex items-center w-[80px] h-[80px]">
-          <img src={image} alt="profile-img" className="rounded-full overflow-hidden w-full h-full" />
+      <div className="flex rounded-2xl p-5 gap-4 bg-customBackground justify-between items-center mt-8 box-border">
+        <div className="flex flex-wrap items-center gap-8 w-[90%]">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center w-[3rem] h-[3rem] rounded-ful overflow-hidden">
+              <img src={image} alt="profile-img" className="rounded-full w-full h-full" />
+            </div>
+
+            <div className="flex flex-col gap-2 text-xs">
+              <p>{nickname} 님 반갑습니다.</p>
+              <p className="text-slate-400">email : {theUser && theUser[0].email}</p>
+              <p className="text-slate-400">성별 : {theUser && theUser[0].gender === 'male' ? '남' : '여'}</p>
+            </div>
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <p className="text-sm text-gray-400 h-full">
+              {theUser && introduce ? introduce : '자기 소개를 추가해주세요'}
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-2 text-xs">
-          <p>{nickname} 님 반갑습니다.</p>
-          <p className="text-slate-400">email : {theUser && theUser[0].email}</p>
-          <p className="text-slate-400">성별 : {theUser && theUser[0].gender === 'male' ? '남' : '여'}</p>
-        </div>
-
-        <div className="flex flex-col flex-grow w-ful h-full">
-          <p className="text-sm text-gray-400 h-full">
-            {theUser && introduce ? introduce : '자기 소개를 추가해주세요'}
-          </p>
-        </div>
-
-        <div className="cursor-pointer">
+        <div className="cursor-pointer flex-grow">
           <HiPencilSquare
             className="w-6 h-6"
             onClick={() => {
@@ -95,7 +98,7 @@ const UserInfo = () => {
               nickname={nickname}
               setNickname={setNickname}
               setImage={setImage}
-              introduce={theUser[0].introduce}
+              introduce={introduce}
               setIntroduce={setIntroduce}
             />
           )}
@@ -104,5 +107,4 @@ const UserInfo = () => {
     </STSection>
   );
 };
-
 export default UserInfo;

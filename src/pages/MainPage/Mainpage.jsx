@@ -141,17 +141,17 @@ function Mainpage({ user = null, contracts = [] }) {
           <input
             type="text"
             id="search-input"
-            className="bg-gray-50 border border-gray-300 text-gray-900 rounded focus:ring-blue-500 focus:border-blue-500 py-[3px] px-2 text-xs flex-grow"
+            className="bg-gray-50 border w-4/5 border-gray-300 text-gray-900 rounded focus:ring-blue-500 focus:border-blue-500 py-[3px] px-2 text-xs"
             ref={searchInputRef}
             placeholder="지번/도로명 주소를 입력해주세요."
           />
           <button
             type="submit"
             id="search-button"
-            className="bg-btn-blue hover:bg-blue-4000 text-white font-bold py-1 px-2 rounded text-xs"
+            className="bg-btn-blue w-1/5 hover:bg-blue-4000 text-white font-bold py-1 px-2 rounded text-xs"
             ref={searchButtonRef}
           >
-            위치검색
+            검색
           </button>
         </form>
         <div id="map01" className="h-full w-full" />
