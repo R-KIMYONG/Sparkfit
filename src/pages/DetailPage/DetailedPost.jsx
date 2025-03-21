@@ -17,21 +17,23 @@ import {
   BiBookReader,
   BiSolidUserCheck
 } from 'react-icons/bi';
+import { RiPassPendingFill } from 'react-icons/ri';
+import { AiFillThunderbolt, AiOutlineThunderbolt } from 'react-icons/ai';
 const DetailedPost = () => {
   const { id } = useParams();
   const [openJoinModal, setOpenJoinModal] = useState(false);
   const [openCreateGroupModal, setCreateGroupModal] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [openEditModal, setOpenEditModal] = useState(false);
-
+  const [activeTab, setActiveTab] = useState('memberList');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {
     data: posts,
     isPending: isPostsLoading,
-    isError
+    isError: isPostsError,
+    refetch: postsRefetch
   } = useQuery({ queryKey: ['posts', id], queryFn: () => getPost(id) });
-
   const postCreatorId = posts?.created_by;
   const { data: user } = useQuery({
     queryKey: ['user', postCreatorId],
@@ -59,7 +61,13 @@ const DetailedPost = () => {
     },
     enabled: !!id
   });
-  const { data: isJoined } = useQuery({
+
+  const {
+    data: isJoined,
+    isPending: isJoinedPending,
+    isError: isJoinedError,
+    refetch: isJoinedRefetch
+  } = useQuery({
     queryKey: ['hasJoined', id, currentUserId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -67,15 +75,20 @@ const DetailedPost = () => {
         .select('*')
         .eq('place_id', id)
         .eq('user_id', currentUserId);
-
       if (error) throw new Error(error.message);
-      return data.length > 0;
+
+      const userRejected = data[0].status;
+      const isJoinedBoolean = data.length > 0;
+
+      return { isJoinedBoolean, userRejected };
     },
     enabled: !!id && !!currentUserId
   });
+
   const {
     data: member,
     isPending: isMemberLoading,
+    isError: isMemberError,
     refetch: memberRefetch
   } = useQuery({
     queryKey: ['member', id],
@@ -87,7 +100,12 @@ const DetailedPost = () => {
     },
     enabled: !!posts?.id
   });
-  const { data: userInfos, error: userInfosError } = useQuery({
+  const {
+    data: userInfos,
+    isPending: isUserInfosPending,
+    isError: userInfosError,
+    refetch: userInfosRefetch
+  } = useQuery({
     queryKey: ['userInfos', id],
     queryFn: async () => {
       const userIds = member.map((m) => m.user_id);
@@ -108,21 +126,30 @@ const DetailedPost = () => {
     },
     enabled: !isMemberLoading && member?.length > 0
   });
-
   //가입
   const joinMutation = useMutation({
     mutationFn: async () => {
       if (!currentUserId) throw new Error('유저 정보가 없습니다.');
-
-      const { error } = await supabase
-        .from('Contracts')
-        .insert([{ place_id: id, user_id: currentUserId, gather_name: posts.gather_name }]);
-
-      if (error) throw new Error(error.message);
+      if (posts?.isReviewed) {
+        const { error: pendingError } = await supabase
+          .from('Contracts')
+          .insert([{ place_id: id, user_id: currentUserId, gather_name: posts.gather_name, status: 'pending' }]);
+        if (pendingError) throw new Error(pendingError.message);
+      } else {
+        const { error: approvedError } = await supabase
+          .from('Contracts')
+          .insert([{ place_id: id, user_id: currentUserId, gather_name: posts.gather_name, status: 'approved' }]);
+        if (approvedError) throw new Error(pendingError.message);
+      }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['participantCount', id] });
-      queryClient.invalidateQueries({ queryKey: ['hasJoined', id] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['member', posts?.id] });
+      await memberRefetch();
+      await userInfosRefetch();
+      await queryClient.invalidateQueries({ queryKey: ['userInfos', id] });
+      await queryClient.refetchQueries({ queryKey: ['userInfos', id] });
+      await queryClient.invalidateQueries({ queryKey: ['participantCount', id] });
+      await queryClient.invalidateQueries({ queryKey: ['hasJoined', id] });
       Swal.fire({
         icon: 'success',
         title: '가입 완료',
@@ -153,9 +180,11 @@ const DetailedPost = () => {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['member', posts?.id] });
       await memberRefetch();
+      await userInfosRefetch();
       await queryClient.invalidateQueries({ queryKey: ['userInfos', id] });
       await queryClient.refetchQueries({ queryKey: ['userInfos', id] });
       await queryClient.invalidateQueries({ queryKey: ['participantCount', id] });
+      await queryClient.invalidateQueries({ queryKey: ['hasJoined', id] });
       Swal.fire({
         icon: 'success',
         title: '취소 완료',
@@ -215,9 +244,13 @@ const DetailedPost = () => {
           .eq('user_id', userId);
 
         if (error) throw new Error(error.message);
-      } else if (action === 'reject') {
+      } else if (action === 'rejected') {
         // 거절 로직
-        const { error } = await supabase.from('Contracts').delete().match({ place_id: id, user_id: userId });
+        const { error } = await supabase
+          .from('Contracts')
+          .update({ status: 'rejected' })
+          .eq('place_id', id)
+          .eq('user_id', userId);
 
         if (error) throw new Error(error.message);
       }
@@ -226,6 +259,8 @@ const DetailedPost = () => {
       // 필요한 모든 쿼리 무효화 및 데이터 새로고침
       await queryClient.invalidateQueries({ queryKey: ['member', posts?.id] });
       await memberRefetch();
+      await isJoinedRefetch();
+      await postsRefetch();
       await queryClient.invalidateQueries({ queryKey: ['userInfos', id] });
       await queryClient.refetchQueries({ queryKey: ['userInfos', id] });
       await queryClient.invalidateQueries({ queryKey: ['participantCount', id] });
@@ -256,7 +291,7 @@ const DetailedPost = () => {
   const handleMemberAction = (userId, action) => {
     memberActionMutation.mutate({ userId, action });
   };
-
+  //모임삭제
   const handleDelete = () => {
     Swal.fire({
       title: '모임 삭제',
@@ -283,8 +318,8 @@ const DetailedPost = () => {
       });
       return;
     }
-    if (isJoined) {
-      leaveMutation.mutate();
+    if (isJoined?.isJoinedBoolean) {
+      leaveMutation.mutate(currentUserId);
     } else {
       setOpenJoinModal(true);
     }
@@ -306,13 +341,12 @@ const DetailedPost = () => {
     }
   }, []);
 
-  if (isPostsLoading && isCountLoading) {
+  if (isPostsLoading && isJoinedPending && isCountLoading && isUserInfosPending) {
     return <div>로딩중</div>;
   }
-  if (isError && isCountError) {
+  if (isCountError && isPostsError && isMemberError && userInfosError & isJoinedError) {
     return <div>오류 발생</div>;
   }
-
   const postDetails = [
     { icon: <BiSolidZap />, label: '모임명', value: posts?.gather_name || '정보 없음' },
     { icon: <BiDumbbell />, label: '스포츠명', value: posts?.sports_name || '정보 없음' },
@@ -323,26 +357,31 @@ const DetailedPost = () => {
       label: '모집현황',
       value: posts?.max_participants ? `${participantCount} / ${posts.max_participants}` : '정보 없음'
     },
+    {
+      icon: <RiPassPendingFill />,
+      label: '승인대기',
+      value:
+        userInfos?.pendingMembers.length > 0 ? `${userInfos?.pendingMembers.length}명 승인대기 중` : '승인대기 없음'
+    },
     { icon: <BiBookReader />, label: '모임설명', value: posts?.texts || '정보 없음' },
     { icon: <BiSolidUserCheck />, label: '조건', value: posts?.isReviewed ? '가입승인 필요' : '아무나 가입가능' }
   ];
-
   return (
     <>
       <div className="w-[1280px] mt-[2rem] md:w-[80%] min-[320px]:w-[80%] lg:w-[80%] lg:mx-auto lg:ml-[150px]  md:ml-[130px] md:mx-0px auto; sm:w-[80%] sm:mx-auto sm:ml-[110px] pb-[5rem]">
         <div className="flex justify-between items-center w-full">
-          <div className="text-3xl font-bold mb-2">{posts?.gather_name}</div>
+          <div className="text-base font-bold mb-2">{posts?.gather_name}</div>
           {currentUserId === postCreatorId ? (
             <div className="flex gap-4">
               <button
                 onClick={() => setOpenEditModal(true)}
-                className={`border border-none rounded-md text-white font-bold px-[20px] py-[10px] text-sm shadow-xl shadow-[#C9E5FF] bg-btn-blue hover:bg-[#6FA3D4] transition-all duration-300 ease-in-out`}
+                className={`border border-none rounded-md text-white font-bold px-[1rem] py-[0.5rem] text-sm shadow-xl shadow-[#C9E5FF] bg-btn-blue hover:bg-[#6FA3D4] transition-all duration-300 ease-in-out`}
               >
                 수정
               </button>
               <button
                 onClick={handleDelete}
-                className={`border border-none rounded-md text-white font-bold px-[20px] py-[10px] text-sm shadow-xl shadow-[#C9E5FF] bg-btn-red hover:bg-red-600 transition-all duration-300 ease-in-out`}
+                className={`border border-none rounded-md text-white font-bold px-[1rem] py-[0.5rem] text-sm shadow-xl shadow-[#C9E5FF] bg-btn-red hover:bg-red-600 transition-all duration-300 ease-in-out`}
               >
                 삭제
               </button>
@@ -350,14 +389,17 @@ const DetailedPost = () => {
           ) : participantCount === posts?.max_participants ? (
             <p className="text-red-500">모집 완료</p>
           ) : (
-            <button
-              onClick={handleJoinOrLeave}
-              className={`border border-none rounded-md text-white font-bold px-[1rem] py-[0.5rem] text-xs shadow-xl shadow-[#C9E5FF] ${
-                isJoined ? 'bg-red-500 hover:bg-red-600' : 'bg-btn-blue hover:bg-[#6FA3D4]'
-              } transition-all duration-300 ease-in-out`}
-            >
-              {isJoined ? '취소' : '가입'}
-            </button>
+            <div className="flex items-center gap-2">
+              <p>{isJoined?.userRejected === 'rejected' ? '❗️관리자로부터 가입거절됬습니다.' : ''}</p>
+              <button
+                onClick={handleJoinOrLeave}
+                className={`border border-none rounded-md text-white font-bold px-[1rem] py-[0.5rem] text-xs shadow-xl shadow-[#C9E5FF] ${
+                  isJoined?.isJoinedBoolean ? 'bg-red-500 hover:bg-red-600' : 'bg-btn-blue hover:bg-[#6FA3D4]'
+                } transition-all duration-300 ease-in-out`}
+              >
+                {isJoined?.isJoinedBoolean ? '가입취소' : '가입하기'}
+              </button>
+            </div>
           )}
 
           {openJoinModal && (
@@ -369,14 +411,14 @@ const DetailedPost = () => {
             />
           )}
         </div>
-
-        <div className=" rounded-full border-none flex flex-row gap-4 items-center mb-2 bg-[#EBF7FF] px-8 py-3 box-border mt-[1.5rem]">
+        {/* 모임장 정보 */}
+        <div className=" rounded-full border-none flex flex-row gap-4 items-center mb-2 bg-[#EBF7FF] px-8 py-5 box-border mt-[1.5rem] flex-wrap">
           <img src={user?.profile_image || '/Ellipse1.png'} alt="기본" className="w-[50px] h-[50px]" />
           <div className="flex mx-2 items-center flex-col item-center text-center">
             <p className="text-xs">모임장 : {user?.username}</p>
             <p className="text-xs text-gray-400">{user?.email}</p>
           </div>
-          <div>
+          <div className="flex-grow">
             <p className="text-xs">{user?.introduce}</p>
           </div>
         </div>
@@ -393,19 +435,47 @@ const DetailedPost = () => {
             ) : null
           )}
         </div>
-
+        {/* 모임설명 */}
         {postDetails
           .filter((detail) => detail.label === '모임설명')
           .map((detail, index) => (
             <div key={index} className="w-full bg-[#F1F1F1] rounded-md p-4 text-sm mt-4">
-              <div className='text-xl mb-2'>{detail.icon}</div>
+              <div className="text-xl mb-2">{detail.icon}</div>
               <p>{detail.value}</p>
             </div>
           ))}
 
-        <h3 className="font-bold text-lg my-3">가입된 멤버</h3>
+        <div className="flex mb-5 box-border w-full mt-4">
+          <button
+            className={`px-5 py-2 w-1/2 text-sm font-bold transition-all border-b-2 ${
+              activeTab === 'memberList'
+                ? 'border-blue-500 text-blue-500 bg-customBackground rounded-t-xl'
+                : 'text-gray-400'
+            }`}
+            onClick={() => setActiveTab('memberList')}
+          >
+            <AiFillThunderbolt className="inline-block mr-1" />
+            가입된 멤버
+          </button>
+          {currentUserId === postCreatorId ? (
+            <button
+              className={`px-5 py-2 w-1/2 text-sm font-bold transition-all border-b-2 ${
+                activeTab === 'pendingList'
+                  ? ' border-blue-500 text-blue-500 bg-customBackground rounded-t-xl'
+                  : 'text-gray-400'
+              }`}
+              onClick={() => setActiveTab('pendingList')}
+            >
+              <AiOutlineThunderbolt className="inline-block mr-1" />
+              멤버승인 요청
+            </button>
+          ) : (
+            ''
+          )}
+        </div>
+
         <ul className="flex gap-3">
-          {userInfos && userInfos.approvedMembers.length > 0 ? (
+          {userInfos && activeTab === 'memberList' && userInfos?.approvedMembers.length > 0 ? (
             userInfos?.approvedMembers?.map((info) => {
               const defaultAvatar = info.gender === 'male' ? '/Ellipse1.png' : '/Ellipse2.png';
               const avatarSrc = info.profile_image || defaultAvatar;
@@ -423,29 +493,28 @@ const DetailedPost = () => {
                     <p className="text-xs">자기 소개</p>
                     <p className="text-xs">{info.introduce || '자기 소개글이 없습니다.'}</p>
                   </div>
-                  {currentUserId === postCreatorId ? (
-                    <button
-                      onClick={() => leaveMutation.mutate(info.id)}
-                      className="text-xs px-3 py-1.5 border-none bg-btn-red rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-red-400 transition-all"
-                    >
-                      탈퇴
-                    </button>
-                  ) : (
-                    ''
+                  {currentUserId === postCreatorId && (
+                    <div className="flex justify-between mt-2">
+                      <button
+                        onClick={() => handleMemberAction(info.id, 'rejected')}
+                        className="text-xs px-3 py-1.5 border-none bg-btn-red rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-red-400 transition-all"
+                      >
+                        탈퇴
+                      </button>
+                    </div>
                   )}
                 </li>
               );
             })
-          ) : (
+          ) : activeTab === 'memberList' ? (
             <p className="text-center text-gray-500 py-4">가입된 멤버가 없습니다.</p>
-          )}
+          ) : null}
         </ul>
-        {currentUserId === postCreatorId ? (
+        {activeTab === 'pendingList' && userInfos?.pendingMembers?.length > 0 ? (
           <>
-            <h3 className="font-bold text-lg my-3">멤버 승인 요청</h3>
             <ul className="flex gap-3">
-              {userInfos && userInfos.pendingMembers.length > 0 ? (
-                userInfos.pendingMembers.map((info) => {
+              {userInfos && userInfos?.pendingMembers.length > 0 ? (
+                userInfos?.pendingMembers.map((info) => {
                   const defaultAvatar = info.gender === 'male' ? '/Ellipse1.png' : '/Ellipse2.png';
                   const avatarSrc = info.profile_image || defaultAvatar;
                   return (
@@ -470,7 +539,7 @@ const DetailedPost = () => {
                           승인
                         </button>
                         <button
-                          onClick={() => handleMemberAction(info.id, 'reject')}
+                          onClick={() => handleMemberAction(info.id, 'rejected')}
                           className="text-xs px-3 py-1.5 border-none bg-btn-red rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-red-400 transition-all"
                         >
                           거절

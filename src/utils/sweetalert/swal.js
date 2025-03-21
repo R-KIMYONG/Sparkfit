@@ -7,5 +7,5 @@ function swal(type, text) {
     icon: type
   });
 }
-
+export { Swal };
 export default swal;

@@ -61,10 +61,14 @@ export const useUserStore = create((set) => ({
   },
 
   checkSignIn: async () => {
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError) {
-      throw new Error(userError.message);
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        throw new Error(error.message);
+      }
+      set({ userData: data.user || null, loading: false, error: null });
+    } catch (error) {
+      set({ userData: null, loading: false, error: `Check sign-in failed: ${error.message}` });
     }
-    set({ userData, loading: false, error: null });
   }
 }));

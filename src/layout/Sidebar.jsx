@@ -13,20 +13,24 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const [activeItem, setActiveItem] = useState('홈');
   const signOut = useUserStore((state) => state.signOut);
-  const checkSignIn = useUserStore((state) => state.checkSignIn);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const currentDate = new Date().toISOString().split('T')[0];
-  const { placesCount, contractsCount, startFetching, stopFetching, hasNewContracts, hasNewPlaces } = usePlacesCount(
-    (state) => state
-  );
+  const {
+    placesCount,
+    startFetching,
+    stopFetching,
+    hasNewContracts,
+    hasNewPlaces,
+    resetContractsNotification,
+    resetPlacesNotification
+  } = usePlacesCount((state) => state);
   const [userId, setUserId] = useState(null);
-
-
+  // console.log(hasNewContracts);
+  // console.log(hasNewPlaces);
   useEffect(() => {
     const authToken = localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token');
-
     if (authToken) {
       try {
         const parsedToken = JSON.parse(authToken);
@@ -44,7 +48,7 @@ export default function Sidebar() {
     return () => {
       stopFetching();
     };
-  }, [checkSignIn, startFetching, stopFetching, userId]);
+  }, [startFetching, stopFetching, userId]);
 
   const openModal = () => {
     setActiveItem('검색');
@@ -146,9 +150,22 @@ export default function Sidebar() {
       });
     }
   };
-  const sidebarMenus = getSidebarMenus({ openModal, navigate, placesCount, hasNewPlaces });
-  const bottomMenus = getBottomMenus({ navigate, handleSignOut, hasNewContracts });
-  const mobileMenus = getMobileMenus({ navigate, openModal, handleSignOut, placesCount, hasNewPlaces });
+  const sidebarMenus = getSidebarMenus({ openModal, navigate, placesCount, hasNewPlaces, resetPlacesNotification });
+  const bottomMenus = getBottomMenus({
+    navigate,
+    handleSignOut,
+    hasNewContracts
+  });
+  const mobileMenus = getMobileMenus({
+    navigate,
+    openModal,
+    handleSignOut,
+    placesCount,
+    hasNewPlaces,
+    hasNewContracts,
+    resetPlacesNotification,
+    resetContractsNotification
+  });
   return (
     <>
       <div className="bg-white shadow-sidebarshaow fixed top-0 left-0 h-lvh w-16 justify-center items-center sm:flex hidden text-sm z-10">
@@ -170,13 +187,14 @@ export default function Sidebar() {
                         setActiveItem(text);
                         onClick();
                         if (text === '모임') {
-                          stopFetching('places');
+                          stopFetching();
                         }
                       }}
                       className="cursor-pointer text-center relative"
                     >
                       <Icon className="absolute right-1/2 -top-1/2 w-[15px] h-[15px] translate-x-1/2 -translate-y-1/2" />
                       <p className="mt-1">{text}</p>
+                      <p>{hasAlarm}</p>
                       {hasAlarm && (
                         <RiInformationFill className="absolute right-[-5px] top-[-25px] w-[15px] h-[15px] text-red-500" />
                       )}
@@ -189,19 +207,23 @@ export default function Sidebar() {
 
           <div className="bottom-menu">
             <ul className="w-full flex flex-col justify-start items-center text-xs gap-16">
-              {bottomMenus.map(({ icon: Icon, text, onClick }, index) => (
+              {bottomMenus.map(({ icon: Icon, text, onClick, hasAlarm }, index) => (
                 <li
                   key={index}
                   onClick={() => {
                     onClick();
                     if (text === '내 계정') {
-                      stopFetching('contracts');
+                      resetContractsNotification();
+                      stopFetching();
                     }
                   }}
                   className="cursor-pointer text-center relative"
                 >
                   <Icon className="absolute right-1/2 -top-1/2 w-[15px] h-[15px] translate-x-1/2 -translate-y-1/2" />
                   <p className="mt-1">{text}</p>
+                  {hasAlarm && (
+                    <RiInformationFill className="absolute right-[0px] top-[-25px] w-[15px] h-[15px] text-red-500" />
+                  )}
                 </li>
               ))}
             </ul>
@@ -219,22 +241,22 @@ export default function Sidebar() {
                 onClick();
                 switch (text) {
                   case '모임':
-                    stopFetching('places');
+                    stopFetching();
                     break;
                   case '내 계정':
-                    stopFetching('contracts');
+                    stopFetching();
                   default:
                     break;
                 }
               }}
-              className={`mx-auto transition-all cursor-pointer text-center flex flex-col items-center hover:text-[#82C0F9] ${
+              className={`mx-auto relative transition-all cursor-pointer text-center flex flex-col items-center hover:text-[#82C0F9] ${
                 activeItem === text ? 'text-[#82C0F9]' : ''
               }`}
             >
               <Icon />
               <p className="text-xs mt-1">{text}</p>
               {hasAlarm && (
-                <RiInformationFill className="absolute right-[-5px] top-[-25px] w-[15px] h-[15px] text-red-500" />
+                <RiInformationFill className="absolute right-[0px] top-[-5px] w-[15px] h-[15px] text-red-500" />
               )}
             </li>
           ))}
@@ -255,7 +277,7 @@ export default function Sidebar() {
         onRequestClose={closeModal}
         contentLabel="번개 검색 모달"
         className="modal inset-0 items-center z-50 "
-        overlayClassName="overlay fixed inset-0 bg-black bg-opacity-50 absolute z-40"
+        overlayClassName="overlay fixed inset-0 bg-black bg-opacity-50 z-40"
       >
         <div className="bg-white p-6 rounded-lg sm:w-2/3 absolute min-[320px]:translate-x-[-50%] min-[320px]:translate-y-[-50%] min-[320px]:top-[50%] min-[320px]:left-[50%] min-[320px]:w-[90%]">
           <div className="flex justify-between items-center mb-4">
@@ -281,7 +303,7 @@ export default function Sidebar() {
                 type="submit"
                 className="bg-customLoginButton text-white py-1 min-[320px]:w-1/6 min-[320px]:text-xs min-[320px] rounded box-border font-bold text-sm"
               >
-                Search
+                검색
               </button>
             </div>
             <span className="text-xs text-gray-500">
@@ -292,17 +314,21 @@ export default function Sidebar() {
             {searchResults.length > 0 ? (
               <ul className="divide-y divide-gray-200">
                 {searchResults.map((item) => (
-                  <li key={item.id} className="py-4 box-border">
+                  <li key={item.id} className="px-2 py-4 box-border shadow-xl rounded-md">
                     <p className=" font-bold sm:text-sm ">{item.gather_name}</p>
-                    <p className="text-gray-700 sm:text-sm mt-2 mb-2 ">
-                      {item.texts.length > 100 ? `${item.texts.slice(0, 100)}...` : item.texts}
-                    </p>
-                    <p className="text-gray-500 sm:text-md">모집기한: {item.deadline}</p>
-                    <div className="flex justify-between items-center mt-2">
-                      <div className="text-gray-500">
-                        <span>{item.region}</span> | <span>{item.sports_name}</span> |{' '}
-                        <span>{item.created_at.slice(0, 10)}</span> | <span>모집인원 : {item.max_participants}</span>
+                    <div className="flex justify-between items-center">
+                      <div className="flex flex-col gap-2 mt-2 flex-wrap">
+                        <p className="text-gray-700 sm:text-sm">
+                          {item.texts.length > 20 ? `${item.texts.slice(0, 20)}...` : item.texts}
+                        </p>
+                        <p className="text-gray-500 sm:text-md">모집기한: {item.deadline}</p>
+                        <p className="text-gray-500 sm:text-md">생성일 : {item.created_at.slice(0, 10)}</p>
+                        <div className="text-gray-500">
+                          <span>{item.region}</span> | <span>{item.sports_name}</span> |{' '}
+                          <span>모집인원 : {item.max_participants}</span>
+                        </div>
                       </div>
+
                       <button
                         className="bg-customLoginButton text-white px-2 py-1 rounded box-border"
                         onClick={() => {
@@ -327,13 +353,3 @@ export default function Sidebar() {
     </>
   );
 }
-
-const SidebarItem = ({ icon: Icon, text, onClick, isActive, placesCount, previousCount }) => (
-  <li className="cursor-pointer text-center relative" onClick={onClick}>
-    {text === '모임' && placesCount > previousCount && (
-      <RiInformationFill className="absolute right-[-5px] top-[-5px] w-[15px] h-[15px] text-red-500" />
-    )}
-    <Icon className={`mx-auto w-iconwidth transition-all h-iconheight ${isActive ? 'text-customLoginButton' : ''}`} />
-    <p className={`mt-1 transition-all text-xs ${isActive ? 'text-[#82C0F9]' : ''}`}>{text}</p>
-  </li>
-);
