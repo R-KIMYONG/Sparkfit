@@ -46,14 +46,16 @@ const GatheringItem = () => {
   }, [gps, placesLoading, selectedButton, sortPlaces]);
 
   return (
-    <div className="flex flex-col gap-4">
-      {loading ? (
-        <Loading />
-      ) : (
-        sortedPlace.map((place) => {
-          return <PlaceItem key={place.id} place={place} />;
-        })
-      )}
+    <div className="flex-1 overflow-auto scrollbar-hide overflow-x-hidden">
+      <div className="flex flex-col gap-4 w-[90%] mx-auto ">
+        {loading ? (
+          <Loading />
+        ) : (
+          sortedPlace.map((place) => {
+            return <PlaceItem key={place.id} place={place} />;
+          })
+        )}
+      </div>
     </div>
   );
 };

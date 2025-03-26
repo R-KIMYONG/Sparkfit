@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./src/**/*.{html,js,jsx}'],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -9,7 +9,7 @@ export default {
         customSignupButton: '#E4E4E4',
         customSocialButton: '#FFD056',
         'btn-blue': '#82C0F9',
-        'btn-red':'red',
+        'btn-red': 'red',
         default: '#efefef'
       },
       boxShadow: {
@@ -31,4 +31,7 @@ export default {
     }
   },
   plugins: [require('tailwind-scrollbar-hide')]
+  // css: {
+  //   postcss: './postcss.config.js' // PostCSS 설정 경로 지정
+  // }
 };

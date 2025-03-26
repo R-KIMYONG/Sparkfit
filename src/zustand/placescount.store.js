@@ -154,8 +154,20 @@ export const usePlacesCount = create(
       }
     }),
     {
-      name: 'places-count-storage', // 로컬스토리지에 저장될 이름
-      getStorage: () => sessionStorage // localStorage 사용 (sessionStorage로 변경 가능)
+      name: 'places-count-storage',
+      storage: {
+        getItem: (name) => {
+          const value = sessionStorage.getItem(name);
+          return value ? JSON.parse(value) : null;
+        },
+        setItem: (name, value) => {
+          sessionStorage.setItem(name, JSON.stringify(value));
+        },
+        removeItem: (name) => {
+          sessionStorage.removeItem(name);
+        }
+      }
+      // getStorage: () => sessionStorage
     }
   )
 );
