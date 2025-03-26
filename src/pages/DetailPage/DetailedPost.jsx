@@ -413,7 +413,7 @@ const DetailedPost = () => {
         </div>
         {/* 모임장 정보 */}
         <div className=" rounded-full border-none flex flex-row gap-4 items-center mb-2 bg-[#EBF7FF] px-8 py-5 box-border mt-[1.5rem] flex-wrap">
-          <img src={user?.profile_image || '/Ellipse1.png'} alt="기본" className="w-[50px] h-[50px]" />
+          <img src={user?.profile_image || '/Ellipse1.png'} alt="기본" className="w-[50px] h-[50px] rounded-full" />
           <div className="flex mx-2 items-center flex-col item-center text-center">
             <p className="text-xs">모임장 : {user?.username}</p>
             <p className="text-xs text-gray-400">{user?.email}</p>

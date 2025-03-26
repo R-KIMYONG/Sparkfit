@@ -10,6 +10,7 @@ import SignupPage from '../pages/LoginPage/SignupPage';
 import NavermapScriptComponent from '../pages/MainPage/NavermapScriptComponent';
 import { PrivateRouter } from './PrivateRouter';
 import { PublicRouter } from './PublicRouter';
+import TermsPage from '@/pages/LoginPage/TermsPage';
 
 export default function Router() {
   return (
@@ -19,6 +20,7 @@ export default function Router() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/terms" element={<TermsPage />} />
         </Route>
         <Route element={<PrivateRouter />}>
           <Route element={<DefaultLayout />}>

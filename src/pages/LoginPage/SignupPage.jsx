@@ -7,7 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { getUserErrorMessage } from './getUserErrorMessage';
 import { BsGenderAmbiguous } from 'react-icons/bs';
-
+import { PiUserCirclePlus } from 'react-icons/pi';
 const SignupPage = () => {
   const [nickname, setNickname] = useState('');
   const [email, setEmail] = useState('');
@@ -20,6 +20,7 @@ const SignupPage = () => {
 
   const handleChangePassword = (e) => {
     const { value } = e.target;
+    console.log(e.target);
     setPassword(value);
     if (value) {
       validatePassword(value);
@@ -49,15 +50,16 @@ const SignupPage = () => {
 
   const handleSignUp = async (event) => {
     event.preventDefault();
+    if (!email || !password || !nickname || !gender || password !== confirmPassword) {
+      Swal.fire({
+        icon: 'error',
+        title: '입력값을 다시 확인해주세요',
+        text: password !== confirmPassword ? '비밀번호가 일치하지 않습니다.' : '모든 필수 정보를 입력해주세요.'
+      });
+      return;
+    }
+
     try {
-      if (!email || !password || !nickname || !gender || password !== confirmPassword) {
-        Swal.fire({
-          icon: 'error',
-          title: '모든 필드를 올바르게 입력해주세요!',
-          text: password !== confirmPassword ? '비밀번호가 일치하지 않습니다.' : '회원가입이 완료되지 않았습니다.'
-        });
-        return;
-      }
       await signUp(email, password, nickname, gender);
 
       setEmail('');
@@ -120,12 +122,14 @@ const SignupPage = () => {
   ];
 
   return (
-    <div className="flex justify-center items-center h-screen bg-customBackground">
+    <div className="flex justify-center items-center h-[100dvh] bg-customBackground">
       <form
         onSubmit={handleSignUp}
-        className="flex flex-col justify-center items-center my-0 mx-auto w-96 h-full gap-5 text-base"
+        className="flex flex-col justify-center items-center mx-auto w-auto gap-4 text-base bg-white bg-opacity-70 p-8 rounded-lg shadow-lg relative pt-20"
       >
-        <h2 className="text-2xl font-semibold mb-3">회원가입</h2>
+        <div className="absolute -top-8 bg-white shadow-lg rounded-full overflow-hidden">
+          <PiUserCirclePlus className="text-6xl" />
+        </div>
         {inputFields.map(({ name, type, placeholder, value, onChange, Icon, error }) => (
           <div key={name} className="w-full items-center border bg-white rounded-full flex gap-2 px-4 relative">
             <Icon className="text-xl" />
@@ -135,8 +139,9 @@ const SignupPage = () => {
               placeholder={placeholder}
               value={value}
               onChange={onChange}
+              maxLength={name === 'password' && name === 'confirmPassword' ? 20 : 12}
             />
-            {error && <p className="text-red-300 text-xs absolute -bottom-5">{error}</p>}
+            {error && <p className="text-red-300 text-[0.5rem] absolute -bottom-5">{error}</p>}
           </div>
         ))}
 
@@ -153,15 +158,17 @@ const SignupPage = () => {
             </label>
           </div>
         </div>
-        <button className="flex justify-center items-center w-full text-sm rounded-full bg-customLoginButton text-white mt-2 p-1.5 cursor-pointer">
-          회원가입
-        </button>
-        <Link
-          to="/login"
-          className="flex justify-center items-center w-full text-sm rounded-full bg-customSignupButton text-black p-1.5 cursor-pointer"
-        >
-          로그인
-        </Link>
+        <div className="flex items-center w-full gap-4">
+          <button className="w-full text-xs rounded-full bg-customLoginButton text-white p-1.5 cursor-pointer">
+            회원가입
+          </button>
+          <Link
+            to="/login"
+            className="w-full text-xs rounded-full bg-customSignupButton text-black p-1.5 cursor-pointer text-center"
+          >
+            로그인
+          </Link>
+        </div>
       </form>
     </div>
   );

@@ -3,8 +3,8 @@ import GatheringItem from '@/components/GatheringPage/GatheringItem';
 
 const GatheringList = () => {
   return (
-    <div className="bg-[#EBF7FF] w-full min-h-screen overflow-hidden">
-      <div className="max-w-screen-xl mx-auto xl:w-[80%] xl:mx-auto lg:w-[80%] lg:mx-auto lg:ml-[130px] md:w-[80%] md:ml-[110px] md:mx-0px auto;  sm:w-[80%] sm:mx-auto sm:ml-[100px] min-[320px]:w-[80%]">
+    <div className="bg-[#EBF7FF] w-full h-[100dvh] flex flex-col">
+      <div className="max-w-screen-xl mx-auto h-full xl:w-[90%] xl:mx-auto xl:ml-[6rem] lg:w-[90%] lg:mx-auto lg:ml-[5rem] md:w-[90%] md:ml-[4.3rem] sm:w-[90%] sm:mx-auto sm:ml-[4.3rem] min-[320px]:w-[90%] flex flex-col ">
         <FilteringList />
         <GatheringItem />
       </div>
