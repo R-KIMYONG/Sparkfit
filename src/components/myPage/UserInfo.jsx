@@ -3,9 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { HiPencilSquare } from 'react-icons/hi2';
 import { RiUser3Line } from 'react-icons/ri';
-import Loading from '../GatheringPage/Loading';
+import Loading from '../common/Loading';
 import { STSection } from './MyPage';
 import MyPageModal from './MyPageModal';
+import Error from '../common/Error';
 
 const UserInfo = () => {
   const [myPageModal, setMyPageModal] = useState(false);
@@ -55,8 +56,7 @@ const UserInfo = () => {
   }
 
   if (usersError) {
-    console.error(usersError);
-    return <div>error!</div>;
+    return <Error message="유저정보 가져오는 데 실패했습니다." />;
   }
   return (
     <STSection>
@@ -83,26 +83,26 @@ const UserInfo = () => {
           </div>
         </div>
 
-        <div className="cursor-pointer flex-grow">
+        <div className="cursor-pointer flex-grow relative">
           <HiPencilSquare
-            className="w-6 h-6"
+            className="w-6 h-6 absolute right-0 top-1/2 -translate-y-1/2"
             onClick={() => {
               setMyPageModal(true);
             }}
           />
-          {myPageModal && (
-            <MyPageModal
-              close={() => {
-                setMyPageModal(false);
-              }}
-              nickname={nickname}
-              setNickname={setNickname}
-              setImage={setImage}
-              introduce={introduce}
-              setIntroduce={setIntroduce}
-            />
-          )}
         </div>
+        {myPageModal && (
+          <MyPageModal
+            close={() => {
+              setMyPageModal(false);
+            }}
+            nickname={nickname}
+            setNickname={setNickname}
+            setImage={setImage}
+            introduce={introduce}
+            setIntroduce={setIntroduce}
+          />
+        )}
       </div>
     </STSection>
   );

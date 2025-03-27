@@ -4,7 +4,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import supabase from '@/supabase/supabaseClient';
 import { exercises } from '@/components/DetailPage/exercises';
 import Select from 'react-select';
-import isMobile from '@/utils/navermap/isMobile';
 const EditPostModal = ({ close, post, postId }) => {
   const [formData, setFormData] = useState({
     gatherName: post?.gather_name || '',

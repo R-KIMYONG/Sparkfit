@@ -1,8 +1,9 @@
 import supabase from '@/supabase/supabaseClient';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
-import Loading from '../GatheringPage/Loading';
+import Loading from '../common/Loading';
 import dayjs from 'dayjs';
+import Error from '../common/Error';
 const ClubInfo = ({ placeID, status }) => {
   const MyClubLists = async () => {
     const { data: mylist, error } = await supabase
@@ -26,14 +27,6 @@ const ClubInfo = ({ placeID, status }) => {
     enabled: !!placeID
   });
 
-  if (theClubsError) {
-    console.log('theClubsError');
-  }
-
-  if (isPending) {
-    return <Loading />;
-  }
-
   const getDeadlineStatus = (deadlineDateString) => {
     if (!deadlineDateString) return;
 
@@ -48,13 +41,19 @@ const ClubInfo = ({ placeID, status }) => {
       return 'dayPast';
     }
   };
-
   const $status = theClubs && theClubs.length > 0 ? getDeadlineStatus(theClubs[0].deadline) : null;
+  if (theClubsError) {
+    return <Error message="모임 정보를 불러오는 중 오류가 발생했습니다. 다시 시도해주세요!" />;
+  }
+
+  if (isPending) {
+    return <Loading />;
+  }
   return (
     <>
       <div className="p-4 min-h-35 border border-sky-100 cursor-pointer min-h-35   rounded-lg mb-5 hover:shadow-xl transition-all duration-300 ease-in-out">
         <div className="flex justify-between items-center">
-          <div className="bg-[#efefef] rounded-md px-3 py-2 box-border text-center w-2/5 text-xs">
+          <div className="bg-[#efefef] rounded-md px-3 py-2 box-border text-center text-[0.5rem]">
             {theClubs[0].sports_name}
           </div>
           <STDeadline $status={$status}>{theClubs[0].deadline}</STDeadline>
@@ -76,10 +75,10 @@ const ClubInfo = ({ placeID, status }) => {
 export const STDeadline = styled.div`
   max-width: 50%;
   height: min-content;
-  padding: 0.5rem 0.75rem;
+  padding: 0.3rem 0.5rem;
   border-radius: 5px;
   color: white;
-  font-size: 0.75rem;
+  font-size: 0.5rem;
   line-height: 1rem;
   text-align: center;
   box-sizing: border-box;
@@ -114,7 +113,7 @@ export const ApprovalResults = styled.p`
     switch ($status) {
       case 'approved':
         return '#82C0F9';
-      case 'peding':
+      case 'pending':
         return '#b1c3f2';
       case 'rejected':
         return '#f7a9a9';

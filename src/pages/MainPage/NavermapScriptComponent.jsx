@@ -1,13 +1,18 @@
 import contractsApi from '@/api/api.contracts';
 import { loginUser } from '@/api/profileApi';
-import Loading from '@/components/GatheringPage/Loading';
+import Loading from '@/components/common/Loading';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import Mainpage from './Mainpage';
+import Error from '@/components/common/Error';
 
 function NavermapScriptComponent() {
-  const { data: user, isLoading: isPending } = useQuery({ queryKey: ['user'], queryFn: loginUser });
-  const { data: contracts, isLoading: isContractsLoading } = useQuery({
+  const { data: user, isPending, isError: isUserError } = useQuery({ queryKey: ['user'], queryFn: loginUser });
+  const {
+    data: contracts,
+    isPending: isContractsLoading,
+    isError: isContractsError
+  } = useQuery({
     queryKey: ['contracts'],
     queryFn: () => contractsApi.getContracts(),
     select: (data) => data.filter((contract) => contract.user_id === user.id)
@@ -39,6 +44,10 @@ function NavermapScriptComponent() {
 
   if (isPending || !isScriptLoaded || isContractsLoading) {
     return <Loading />;
+  }
+
+  if (isContractsError || isUserError) {
+    return <Error message="네이버 맵 스크립트 오류" />;
   }
 
   return <Mainpage user={user} contracts={contracts} />;
