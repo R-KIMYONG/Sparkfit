@@ -14,7 +14,7 @@ import TermsPage from '@/pages/LoginPage/TermsPage';
 
 export default function Router() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route element={<PublicRouter />}>
           <Route path="/" element={<HomePage />} />

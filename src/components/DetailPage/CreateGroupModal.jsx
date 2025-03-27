@@ -9,9 +9,11 @@ import { useShallow } from 'zustand/react/shallow';
 import Swal from 'sweetalert2';
 import { exercises } from './exercises';
 import Select from 'react-select';
+import Loading from '../common/Loading';
+import Error from '../common/Error';
+
 const CreateGroupModal = ({ close }) => {
   const modalRef = useRef(null);
-
   const [formData, setFormData] = useState({
     groupName: '',
     sportsName: '',
@@ -33,7 +35,7 @@ const CreateGroupModal = ({ close }) => {
     }));
   }, [selectedGeoData]);
 
-  const { data: user } = useQuery({ queryKey: ['user'], queryFn: loginUser });
+  const { data: user, isPending: isUserPending, isError } = useQuery({ queryKey: ['user'], queryFn: loginUser });
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -95,7 +97,6 @@ const CreateGroupModal = ({ close }) => {
       .select();
 
     if (error) {
-      console.error(error.message);
       Swal.fire({
         icon: 'error',
         title: '오류 발생',
@@ -125,6 +126,12 @@ const CreateGroupModal = ({ close }) => {
     { name: 'isReviewed', placeholder: '가입 심사', type: 'checkbox' }
   ];
 
+  if (isUserPending) {
+    return <Loading />;
+  }
+  if (isError) {
+    return <Error />;
+  }
   return (
     <div className="fixed inset-0 w-full h-full bg-black bg-opacity-30 z-50 flex justify-center items-center">
       <div className="bg-white p-6 w-[24rem] rounded-md" ref={modalRef}>
@@ -133,7 +140,7 @@ const CreateGroupModal = ({ close }) => {
         </div>
         <form onSubmit={createGroupForm}>
           <div className="my-3 mx-3 flex flex-col gap-2">
-            {inputFields.map((field,index) =>
+            {inputFields.map((field, index) =>
               field.type === 'select' ? (
                 <Select
                   options={exercises.map((sport) => ({ label: sport, value: sport }))}

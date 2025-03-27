@@ -297,7 +297,7 @@ export default function Sidebar() {
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 placeholder="지역 또는 스포츠명을 입력하세요"
                 className="px-3 py-2 border rounded sm:w-5/6 box-border w-full"
-                maxLength={20}
+                maxLength={30}
               />
               <button
                 type="submit"

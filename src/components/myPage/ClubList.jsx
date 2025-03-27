@@ -8,22 +8,23 @@ import ClubInfo, { STDeadline } from './ClubInfo';
 import { STSection } from './MyPage';
 import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
+import Loading from '../common/Loading';
+import Error from '../common/Error';
 const ClubList = () => {
   const [activeTab, setActiveTab] = useState('joined');
 
   const navigate = useNavigate();
   const [userId, setUserData] = useState(null);
   const getMyGathering = async () => {
-    const { data, error } = await supabase.from('Contracts').select('*').eq('user_id', userId);
+    const { data, error } = await supabase
+      .from('Contracts')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
     if (error) {
       console.log(error);
     }
-    const sortedGatherings = data?.sort((a, b) => {
-      const dateA = new Date(a.created_at);
-      const dateB = new Date(b.created_at);
-      return dateB - dateA; // 내림차순 정렬
-    });
-    return sortedGatherings;
+    return data;
   };
 
   useEffect(() => {
@@ -42,7 +43,11 @@ const ClubList = () => {
     }
   }, []);
 
-  const { data: theGatherings } = useQuery({
+  const {
+    data: theGatherings,
+    isTheGatheringsPending,
+    isError: isTheGatheringsError
+  } = useQuery({
     queryKey: ['myGathering', userId],
     queryFn: getMyGathering,
     enabled: !!userId
@@ -51,20 +56,20 @@ const ClubList = () => {
     if (!userId) return null;
     const { data: CreateGathering, error: CreateGatheringError } = await supabase
       .from('Places')
-      .select('region, sports_name, gather_name, deadline, id')
-      .eq('created_by', userId);
+      .select('*')
+      .eq('created_by', userId)
+      .order('created_at', { ascending: false });
     if (CreateGatheringError) {
       console.error(CreateGatheringError);
     }
-    const sortedGatherings = CreateGathering?.sort((a, b) => {
-      const dateA = new Date(a.deadline);
-      const dateB = new Date(b.deadline);
-      return dateB - dateA; // 내림차순 정렬
-    });
-    return sortedGatherings;
+    return CreateGathering;
   };
 
-  const { data: MyCreateGathering } = useQuery({
+  const {
+    data: MyCreateGathering,
+    isPending: isMyCreateGatheringPending,
+    isError: isMyCreateGatheringError
+  } = useQuery({
     queryKey: ['myCreateGathering', userId],
     queryFn: getMyCreateGathering,
     enabled: !!userId
@@ -107,6 +112,13 @@ const ClubList = () => {
       }
     });
   };
+
+  if (isTheGatheringsPending && isMyCreateGatheringPending) {
+    return <Loading />;
+  }
+  if (isMyCreateGatheringError || isTheGatheringsError) {
+    return <Error message="모임 목록을 불러오는 중 오류가 발생했습니다. 다시 시도해주세요!" />;
+  }
   return (
     <>
       <STSection>
@@ -159,22 +171,39 @@ const ClubList = () => {
         ) : // 내가 만든 번개 리스트
         MyCreateGathering && MyCreateGathering.length > 0 ? (
           <ul className="flex items-center flex-wrap gap-2">
-            {MyCreateGatheringWithStatus.map(({ region, sports_name, gather_name, deadline, id, $status }, index) => (
-              <li
-                key={index + 1}
-                onClick={() => handleMoveToDetail(id)}
-                className="cursor-pointer p-4 border border-teal-100 rounded-lg hover:shadow-xl  flex-auto"
-              >
-                <div className="flex justify-between items-center">
-                  <div className="bg-[#efefef] rounded-md px-3 py-2 text-center w-2/5 text-xs">{sports_name}</div>
-                  <STDeadline $status={$status}>{deadline}</STDeadline>
-                </div>
-                <div className="flex flex-col text-xs">
-                  <p className="pb-2 mt-4 font-black truncate">{gather_name}</p>
-                  <p>{region}</p>
-                </div>
-              </li>
-            ))}
+            {MyCreateGatheringWithStatus.map(
+              ({ region, sports_name, gather_name, deadline, id, isReviewed, $status }, index) => (
+                <li
+                  key={index + 1}
+                  onClick={() => handleMoveToDetail(id)}
+                  className="cursor-pointer p-4 border border-teal-100 rounded-lg hover:shadow-xl  flex-auto"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="bg-[#efefef] rounded-md px-1 py-2 text-center w-2/5 text-[0.5rem]">
+                      {sports_name}
+                    </div>
+                    <STDeadline $status={$status}>{deadline}</STDeadline>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="flex flex-col my-2 gap-2">
+                      <p className="font-black truncate">{gather_name}</p>
+                      <p>{region}</p>
+                    </div>
+                    <div>
+                      <p
+                        className={`text-[0.5rem] px-3 py-1.5 border-none ${
+                          isReviewed
+                            ? 'bg-btn-blue rounded-md text-white font-semibold cursor-pointer hover:bg-blue-400 transition-all'
+                            : 'bg-gray-200 rounded-md text-black font-semibold cursor-pointer hover:bg-gray-400 transition-all'
+                        }`}
+                      >
+                        {isReviewed ? '승인 ⭕️' : '승인 ❌'}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              )
+            )}
           </ul>
         ) : (
           <div className="flex mx-auto text-slate-400 items-center">

@@ -57,6 +57,7 @@ const PlaceItem = ({ place }) => {
           <div className="flex flex-row gap-4">
             <p className="text-[#999] text-xs">{`${place.deadline} 마감`}</p>
             <p className="text-[#999] text-xs">{`인원 ${participantCount}/${place.max_participants}`}</p>
+            <p className="text-[#999] text-xs">{place.isReviewed ? '승인 ⭕️' : '승인 ❌'}</p>
           </div>
         </div>
       </div>

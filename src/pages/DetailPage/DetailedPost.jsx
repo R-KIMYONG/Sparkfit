@@ -19,6 +19,8 @@ import {
 } from 'react-icons/bi';
 import { RiPassPendingFill } from 'react-icons/ri';
 import { AiFillThunderbolt, AiOutlineThunderbolt } from 'react-icons/ai';
+import Loading from '@/components/common/Loading';
+import Error from '@/components/common/Error';
 const DetailedPost = () => {
   const { id } = useParams();
   const [openJoinModal, setOpenJoinModal] = useState(false);
@@ -33,7 +35,7 @@ const DetailedPost = () => {
     isPending: isPostsLoading,
     isError: isPostsError,
     refetch: postsRefetch
-  } = useQuery({ queryKey: ['posts', id], queryFn: () => getPost(id) });
+  } = useQuery({ queryKey: ['posts', id], queryFn: () => getPost(id), retry: 1 });
   const postCreatorId = posts?.created_by;
   const { data: user } = useQuery({
     queryKey: ['user', postCreatorId],
@@ -59,7 +61,8 @@ const DetailedPost = () => {
       }
       return count || 0;
     },
-    enabled: !!id
+    enabled: !!id,
+    retry: 1
   });
 
   const {
@@ -98,12 +101,13 @@ const DetailedPost = () => {
       if (error) throw new Error(error.message);
       return data;
     },
-    enabled: !!posts?.id
+    enabled: !!posts?.id,
+    retry: 1
   });
   const {
     data: userInfos,
-    isPending: isUserInfosPending,
-    isError: userInfosError,
+    isPending: isUserInfosLoading,
+    isError: isUserInfosError,
     refetch: userInfosRefetch
   } = useQuery({
     queryKey: ['userInfos', id],
@@ -124,7 +128,8 @@ const DetailedPost = () => {
       if (error) throw new Error(error.message);
       return { approvedMembers, pendingMembers };
     },
-    enabled: !isMemberLoading && member?.length > 0
+    enabled: !isMemberLoading && member?.length > 0,
+    retry: 1
   });
   //가입
   const joinMutation = useMutation({
@@ -341,11 +346,20 @@ const DetailedPost = () => {
     }
   }, []);
 
-  if (isPostsLoading && isJoinedPending && isCountLoading && isUserInfosPending) {
-    return <div>로딩중</div>;
+  const isLoading =
+    isPostsLoading &&
+    isMemberLoading &&
+    isUserInfosLoading &&
+    isCountLoading &&
+    isJoinedPending &&
+    currentUserId === null;
+  const isError = isPostsError || isMemberError || isUserInfosError;
+
+  if (isLoading) {
+    return <Loading />;
   }
-  if (isCountError && isPostsError && isMemberError && userInfosError & isJoinedError) {
-    return <div>오류 발생</div>;
+  if (isError) {
+    return <Error message="모임 정보를 가져오는데 실패했습니다. " />;
   }
   const postDetails = [
     { icon: <BiSolidZap />, label: '모임명', value: posts?.gather_name || '정보 없음' },
@@ -507,18 +521,20 @@ const DetailedPost = () => {
               );
             })
           ) : activeTab === 'memberList' ? (
-            <p className="text-center text-gray-500 py-4">가입된 멤버가 없습니다.</p>
+            <div className="w-full">
+              <p className="text-center text-gray-500 py-4">가입된 멤버가 없습니다.</p>
+            </div>
           ) : null}
         </ul>
-        {activeTab === 'pendingList' && userInfos?.pendingMembers?.length > 0 ? (
+        {activeTab === 'pendingList' && (
           <>
-            <ul className="flex gap-3">
-              {userInfos && userInfos?.pendingMembers.length > 0 ? (
-                userInfos?.pendingMembers.map((info) => {
+            {userInfos?.pendingMembers?.length > 0 ? (
+              <ul className="flex gap-3">
+                {userInfos.pendingMembers.map((info) => {
                   const defaultAvatar = info.gender === 'male' ? '/Ellipse1.png' : '/Ellipse2.png';
                   const avatarSrc = info.profile_image || defaultAvatar;
                   return (
-                    <li key={info.id} className=" border-b py-2 bg-[#EBF7FF] p-4 rounded-md">
+                    <li key={info.id} className="border-b py-2 bg-[#EBF7FF] p-4 rounded-md">
                       <div className="flex items-center gap-3">
                         <img src={avatarSrc} alt="프로필" className="w-10 h-10 rounded-full" />
                         <div>
@@ -547,14 +563,12 @@ const DetailedPost = () => {
                       </div>
                     </li>
                   );
-                })
-              ) : (
-                <p className="text-center text-gray-500 py-4">승인요청 없습니다.</p>
-              )}
-            </ul>
+                })}
+              </ul>
+            ) : (
+              <p className="text-center text-gray-500 py-4">승인요청 없습니다.</p>
+            )}
           </>
-        ) : (
-          ''
         )}
       </div>
 

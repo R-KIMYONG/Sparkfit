@@ -3,7 +3,7 @@ import usePlaces from '@/hooks/usePlaces';
 import { calculateDistance } from '@/utils/gathering/distance';
 import useFilterStore from '@/zustand/filter.list';
 import { useCallback, useEffect } from 'react';
-import Loading from './Loading';
+import Loading from '../common/Loading';
 import PlaceItem from './PlaceItem';
 import { useGatheringStore } from '@/zustand/gathering.store';
 
@@ -33,6 +33,12 @@ const GatheringItem = () => {
       };
       let placeList = sortPlaces(places, userLocation);
 
+      if (selectedButton === 3) {
+        placeList = placeList.filter((place) => place.isReviewed === true); // 승인 불필요
+      } else if (selectedButton === 4) {
+        placeList = placeList.filter((place) => place.isReviewed === false); // 승인 필요
+      }
+
       if (selectedButton === 1) {
         // 마감기한순 정렬
         placeList = placeList.sort((a, b) => a.deadline.localeCompare(b.deadline));
@@ -44,7 +50,6 @@ const GatheringItem = () => {
       setLoading(false);
     }
   }, [gps, placesLoading, selectedButton, sortPlaces]);
-
   return (
     <div className="flex-1 overflow-auto scrollbar-hide overflow-x-hidden">
       <div className="flex flex-col gap-4 w-[90%] mx-auto pb-20">
