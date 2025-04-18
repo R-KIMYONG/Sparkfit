@@ -5,17 +5,22 @@ import useOutsideClick from './useOutsideClick';
 const JoinModal = ({ close, joinMutation }) => {
   const modalRef = useRef(null);
   const [openAlertModal, setOpenAlertModal] = useState(false);
-
+  const [isProcessing, setIsProcessing] = useState(false);
   const handleClose = () => {
-    close?.();
+    if (!isProcessing) close?.();
   };
 
   useOutsideClick(modalRef, handleClose);
 
   const joinGroup = () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     joinMutation.mutate({
       onSuccess: () => {
         close();
+      },
+      onSettled: () => {
+        setTimeout(() => setIsProcessing(false), 500);
       }
     });
   };

@@ -1,18 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useOutsideClick from './useOutsideClick';
 import { v4 as uuidv4 } from 'uuid';
 import supabase from '@/supabase/supabaseClient';
-import { loginUser } from '@/api/profileApi';
-import { useQuery } from '@tanstack/react-query';
 import useMapStore from '@/zustand/map.store';
 import { useShallow } from 'zustand/react/shallow';
 import Swal from 'sweetalert2';
 import { exercises } from './exercises';
-import Select from 'react-select';
 import Loading from '../common/Loading';
 import Error from '../common/Error';
-
+import CreatableSelect from 'react-select/creatable';
+import { handleInputChangeWithLimit } from '@/utils/selectFn/handleInputChangeWithLimit';
+import { Switch } from '@headlessui/react';
+import { useUserStore } from '@/zustand/auth.store';
 const CreateGroupModal = ({ close }) => {
+  const [selectedInputValue, setSelectedInputValue] = useState('');
   const modalRef = useRef(null);
   const [formData, setFormData] = useState({
     groupName: '',
@@ -28,24 +29,19 @@ const CreateGroupModal = ({ close }) => {
     useShallow((state) => ({ selectedGeoData: state.selectedGeoData, setUserGps: state.setUserGps }))
   );
 
-  useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
-      address: selectedGeoData?.address?.jibunAddress || ''
-    }));
-  }, [selectedGeoData]);
+  const { userData, loading: isUserPending, error: isError } = useUserStore();
 
-  const { data: user, isPending: isUserPending, isError } = useQuery({ queryKey: ['user'], queryFn: loginUser });
+  const userId = userData?.id;
+  const handleClose = () => close?.();
 
-  const handleInputChange = (e) => {
+  const handleInputChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-  };
-
-  const validateForm = () => {
+  }, []);
+  const validateForm = useCallback(() => {
     const missingFields = [];
     const fieldNames = {
       groupName: '모임명',
@@ -71,60 +67,94 @@ const CreateGroupModal = ({ close }) => {
       return false;
     }
     return true;
-  };
+  }, [formData]);
+  const createGroupForm = useCallback(
+    async (e) => {
+      e.preventDefault();
+      const groupId = uuidv4();
+      if (!validateForm()) return;
+      const { data, error } = await supabase
+        .from('Places')
+        .insert([
+          {
+            id: groupId,
+            sports_name: formData.sportsName,
+            gather_name: formData.groupName,
+            deadline: formData.deadline,
+            region: formData.address,
+            texts: formData.contents,
+            created_by: userId,
+            lat: selectedGeoData.coord.lat,
+            long: selectedGeoData.coord.long,
+            max_participants: formData.maxParticipants,
+            isReviewed: formData.isReviewed
+          }
+        ])
+        .select();
 
-  const createGroupForm = async (e) => {
-    e.preventDefault();
-    const groupId = uuidv4();
-    if (!validateForm()) return;
-    const { data, error } = await supabase
-      .from('Places')
-      .insert([
-        {
-          id: groupId,
-          sports_name: formData.sportsName,
-          gather_name: formData.groupName,
-          deadline: formData.deadline,
-          region: formData.address,
-          texts: formData.contents,
-          created_by: user?.id,
-          lat: selectedGeoData.coord.lat,
-          long: selectedGeoData.coord.long,
-          max_participants: formData.maxParticipants,
-          isReviewed: formData.isReviewed
-        }
-      ])
-      .select();
-
-    if (error) {
-      Swal.fire({
-        icon: 'error',
-        title: '오류 발생',
-        text: error.message || '오류가 발생했습니다.'
-      });
-    } else {
-      Swal.fire({
-        icon: 'success',
-        title: '모임 생성 완료',
-        text: '모임이 성공적으로 생성되었습니다!'
-      }).then(handleClose());
+      if (error) {
+        Swal.fire({
+          icon: 'error',
+          title: '오류 발생',
+          text: error.message || '오류가 발생했습니다.'
+        });
+      } else {
+        Swal.fire({
+          icon: 'success',
+          title: '모임 생성 완료',
+          text: '모임이 성공적으로 생성되었습니다!'
+        }).then(handleClose());
+      }
+    },
+    [formData, validateForm, userId, selectedGeoData, handleClose]
+  );
+  const handleSelectChange = (selected) => {
+    if (selected === null) {
+      return;
     }
+    setFormData((prev) => {
+      if (!selected) {
+        return { ...prev, sportsName: '' };
+      }
+
+      if (prev.sportsName !== selected.value) {
+        return { ...prev, sportsName: selected.value };
+      }
+      return prev;
+    });
   };
 
-  const handleClose = () => close?.();
+  const handleSelectSportsInputChange = (value) => {
+    const newValue = handleInputChangeWithLimit(value, 10);
+    setSelectedInputValue(newValue);
+  };
 
   useOutsideClick(modalRef, handleClose);
 
-  const todayDate = new Date().toISOString().split('T')[0];
+  const todayDate = () => new Date().toISOString().split('T')[0];
   const inputFields = [
-    { name: 'groupName', placeholder: '모임명', type: 'text' },
-    { name: 'sportsName', placeholder: '스포츠명', type: 'select', options: exercises },
-    { name: 'deadline', placeholder: '마감 기한', type: 'date', min: todayDate },
-    { name: 'address', placeholder: '주소', type: 'text' },
-    { name: 'contents', placeholder: '모집 설명', type: 'textarea' },
-    { name: 'maxParticipants', placeholder: '모집인원수', type: 'number', min: 1 },
-    { name: 'isReviewed', placeholder: '가입 심사', type: 'checkbox' }
+    { id: 'groupName', name: 'groupName', placeholder: '모임명', type: 'text', maxLength: 20 },
+    {
+      id: 'sportsName',
+      name: 'sportsName',
+      placeholder: '스포츠명',
+      type: 'select',
+      options: exercises.map((sport) => ({ label: sport, value: sport })),
+      inputValue: selectedInputValue
+    },
+    { id: 'deadline', name: 'deadline', placeholder: '마감 기한', type: 'date', min: todayDate },
+    { id: 'address', name: 'address', placeholder: '주소', type: 'text' },
+    { id: 'contents', name: 'contents', placeholder: '모집 설명', type: 'textarea', maxLength: 200 },
+    { id: 'maxParticipants', name: 'maxParticipants', placeholder: '모집인원수', type: 'number', min: 1 },
+    { id: 'isReviewed', name: 'isReviewed', placeholder: '가입 심사', type: 'switch' }
   ];
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      address: selectedGeoData?.address?.jibunAddress || ''
+    }));
+  }, [selectedGeoData]);
 
   if (isUserPending) {
     return <Loading />;
@@ -132,79 +162,101 @@ const CreateGroupModal = ({ close }) => {
   if (isError) {
     return <Error />;
   }
+
   return (
-    <div className="fixed inset-0 w-full h-full bg-black bg-opacity-30 z-50 flex justify-center items-center">
+    <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex justify-center items-center">
       <div className="bg-white p-6 w-[24rem] rounded-md" ref={modalRef}>
-        <div className="m-2 flex justify-center items-center">
-          <h3>모임 만들기</h3>
-        </div>
-        <form onSubmit={createGroupForm}>
-          <div className="my-3 mx-3 flex flex-col gap-2">
-            {inputFields.map((field, index) =>
-              field.type === 'select' ? (
-                <Select
-                  options={exercises.map((sport) => ({ label: sport, value: sport }))}
-                  placeholder="스포츠명 선택"
-                  onChange={(selected) => setFormData((prev) => ({ ...prev, sportsName: selected.value }))}
-                  className="text-xs"
-                  key={index}
-                />
-              ) : field.type === 'checkbox' ? (
-                <label key={field.name} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    name={field.name}
+        <h3 className="text-center text-lg font-bold mb-4">모임 만들기</h3>
+        <form onSubmit={createGroupForm} className="space-y-3">
+          {inputFields.map((field) => {
+            if (field.type === 'switch') {
+              return (
+                <div key={field.name} className="flex items-center gap-3 px-1">
+                  <Switch
                     checked={formData[field.name]}
-                    onChange={handleInputChange}
-                    autoComplete="off"
-                    key={index}
-                  />
+                    onChange={(val) =>
+                      handleInputChange({
+                        target: { name: field.name, type: 'checkbox', checked: val }
+                      })
+                    }
+                    className={`${
+                      formData[field.name] ? 'bg-blue-500' : 'bg-gray-300'
+                    } relative inline-flex h-5 w-10 items-center rounded-full`}
+                  >
+                    <span
+                      className={`${
+                        formData[field.name] ? 'translate-x-5' : 'translate-x-1'
+                      } inline-block h-3 w-3 transform bg-white rounded-full transition-transform`}
+                    />
+                  </Switch>
                   <span className="text-xs font-semibold">{field.placeholder}</span>
-                </label>
-              ) : field.name === 'contents' ? (
-                <div className="relative w-full h-full">
+                </div>
+              );
+            }
+
+            if (field.type === 'select') {
+              return (
+                <>
+                  <div key={field.id} onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+                    <CreatableSelect
+                      key={field.id}
+                      options={field.options}
+                      placeholder={field.placeholder}
+                      onChange={handleSelectChange}
+                      isClearable
+                      formatCreateLabel={(inputValue) => `"${inputValue}" 생성 (최대 10자)`}
+                      inputValue={selectedInputValue}
+                      className="text-xs"
+                      onInputChange={handleSelectSportsInputChange}
+                    />
+                  </div>
+                </>
+              );
+            }
+
+            if (field.type === 'textarea') {
+              return (
+                <div key={field.name} className="relative">
                   <textarea
-                    key={field.name}
-                    className="w-full h-full rounded-md font-semibold border p-2 box-border text-xs block"
-                    style={{ resize: 'none' }}
-                    placeholder={field.placeholder + ' (최대 200자)'}
+                    className="w-full p-2 rounded border text-xs resize-none"
                     name={field.name}
+                    rows={4}
+                    maxLength={field.maxLength}
+                    placeholder={`${field.placeholder} (최대 ${field.maxLength}자)`}
                     value={formData[field.name]}
                     onChange={handleInputChange}
                     autoComplete="off"
-                    rows={4}
-                    maxLength={200}
                   />
-                  <span className="text-[8px] text-gray-300 absolute right-3 bottom-2">
-                    {formData[field.name].length}/200
+                  <span className="absolute bottom-2 right-2 text-[8px] text-gray-400">
+                    {formData[field.name].length}/{field.maxLength}
                   </span>
                 </div>
-              ) : (
-                <input
-                  key={field.name}
-                  className="w-full rounded-md font-semibold border p-2 box-border text-xs"
-                  type={field.type}
-                  placeholder={field.placeholder}
-                  name={field.name}
-                  value={formData[field.name]}
-                  min={field.min}
-                  onChange={handleInputChange}
-                  autoComplete="off"
-                />
-              )
-            )}
-          </div>
-          <div className="flex justify-center items-center my-3">
-            <button
-              className="text-xs px-3 py-1.5 border-none bg-btn-blue rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-blue-400 transition-all"
-              type="submit"
-            >
+              );
+            }
+
+            return (
+              <input
+                key={field.name}
+                type={field.type}
+                name={field.name}
+                min={field.min}
+                maxLength={field.maxLength}
+                value={formData[field.name]}
+                onChange={handleInputChange}
+                placeholder={field.placeholder}
+                className="w-full p-2 rounded border text-xs"
+                autoComplete="off"
+              />
+            );
+          })}
+          <div className="flex justify-center gap-2 pt-2">
+            <button type="submit" className="text-xs px-3 py-1.5 bg-btn-blue text-white rounded hover:bg-blue-400">
               생성
             </button>
             <button
-              className="text-xs px-3 py-1.5 border-none bg-btn-red rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-red-400 transition-all"
               type="button"
-              onClick={handleClose}
+              onClick={close}
+              className="text-xs px-3 py-1.5 bg-btn-red text-white rounded hover:bg-red-400"
             >
               닫기
             </button>

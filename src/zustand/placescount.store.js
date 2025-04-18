@@ -65,12 +65,6 @@ export const usePlacesCount = create(
         const contractsInsertChannel = supabase
           .channel('contracts-insert-channel')
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Contracts' }, async (payload) => {
-            // 모임장이 가입을 승인하면 일반 회원에게 알림을 보냅니다.
-            //모임장에 갈 알림
-            //일단 이벤트 발생한 내용중 payload.new.place_id를 가져와 모임장이 누군지 확인하기
-            //Places테이블에서 payload.new.place_id와 created_by 일치한거를 찾고
-            //찾은 결과물이 모임장이니 현재로그인한 사용자가 모임장인지 구분
-            //현재로그인한 사람이 모임장이면 알림 true  아니면 동작하지않는다
 
             if (payload.new.status === 'approved' || payload.new.status === 'pending') {
               try {

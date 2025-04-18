@@ -11,7 +11,7 @@ export const loginUser = async () => {
 
 // 특정 사용자 정보
 export const getUser = async (userId) => {
-  const { data, error } = await supabase.from('userinfo').select('*').eq('id', userId).single();
+  const { data, error } = await supabase.from('Userinfo').select('*').eq('id', userId).single();
   if (error) {
     console.error(error.message);
   }

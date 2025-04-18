@@ -4,17 +4,18 @@ import { AiFillThunderbolt, AiOutlineThunderbolt } from 'react-icons/ai';
 import { RiGroupLine } from 'react-icons/ri';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import ClubInfo, { STDeadline } from './ClubInfo';
-import { STSection } from './MyPage';
-import { useEffect, useState } from 'react';
-import dayjs from 'dayjs';
+import { useState } from 'react';
 import Loading from '../common/Loading';
 import Error from '../common/Error';
+import useUserId from '@/hooks/useUserId';
+import { ApprovalResults, STDeadline, STSection } from '../common/commonStyle';
+import ClubInfo from './ClubInfo';
+import { getDeadlineStatus } from '@/utils/\bdateUtils';
 const ClubList = () => {
   const [activeTab, setActiveTab] = useState('joined');
-
   const navigate = useNavigate();
-  const [userId, setUserData] = useState(null);
+  const userId = useUserId();
+
   const getMyGathering = async () => {
     const { data, error } = await supabase
       .from('Contracts')
@@ -27,22 +28,6 @@ const ClubList = () => {
     return data;
   };
 
-  useEffect(() => {
-    const authToken = localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token');
-
-    if (authToken) {
-      try {
-        const parsedToken = JSON.parse(authToken);
-        const userId = parsedToken?.user?.id;
-        setUserData(userId);
-      } catch (error) {
-        console.error('Token parsing error:', error);
-      }
-    } else {
-      console.log('No auth token found in localStorage');
-    }
-  }, []);
-
   const {
     data: theGatherings,
     isTheGatheringsPending,
@@ -53,7 +38,6 @@ const ClubList = () => {
     enabled: !!userId
   });
   const getMyCreateGathering = async () => {
-    if (!userId) return null;
     const { data: CreateGathering, error: CreateGatheringError } = await supabase
       .from('Places')
       .select('*')
@@ -74,30 +58,11 @@ const ClubList = () => {
     queryFn: getMyCreateGathering,
     enabled: !!userId
   });
-  const getDeadlineStatus = (deadlineDate) => {
-    // if (!MyCreateGathering || MyCreateGathering.length === 0 || !deadlineDate) {
-    //   return;
-    // }
-    if (!deadlineDate) {
-      return;
-    }
 
-    const today = dayjs().startOf('day');
-    const deadline = dayjs(deadlineDate).startOf('day');
-
-    if (today.isBefore(deadline)) {
-      return 'dayFuture';
-    } else if (today.isSame(deadline, 'day')) {
-      return 'dayToday';
-    } else {
-      return 'dayPast';
-    }
-  };
-  // 모든 모임의 deadline 배열 추출
-  const MyCreateGatheringWithStatus = MyCreateGathering?.map((gathering) => {
-    const $status = getDeadlineStatus(gathering.deadline);
-    return { ...gathering, $status }; // 상태 추가
-  });
+  const MyCreateGatheringWithStatus = MyCreateGathering?.map((gathering) => ({
+    ...gathering,
+    $status: getDeadlineStatus(gathering.deadline)
+  }));
   const handleMoveToDetail = (place_id) => {
     Swal.fire({
       title: '모임 상세 페이지로 이동하시겠어요?',
@@ -179,26 +144,21 @@ const ClubList = () => {
                   className="cursor-pointer p-4 border border-teal-100 rounded-lg hover:shadow-xl  flex-auto"
                 >
                   <div className="flex justify-between items-center">
-                    <div className="bg-[#efefef] rounded-md px-1 py-2 text-center w-2/5 text-[0.5rem]">
+                    <div className="bg-[#efefef] rounded-md px-5 py-2 text-center text-[0.7rem] font-bold">
                       {sports_name}
                     </div>
                     <STDeadline $status={$status}>{deadline}</STDeadline>
                   </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <div className="flex flex-col my-2 gap-2">
+                  <div className="flex justify-between items-end text-xs mt-2">
+                    <div className="flex flex-col gap-2">
                       <p className="font-black truncate">{gather_name}</p>
                       <p>{region}</p>
                     </div>
                     <div>
-                      <p
-                        className={`text-[0.5rem] px-3 py-1.5 border-none ${
-                          isReviewed
-                            ? 'bg-btn-blue rounded-md text-white font-semibold cursor-pointer hover:bg-blue-400 transition-all'
-                            : 'bg-gray-200 rounded-md text-black font-semibold cursor-pointer hover:bg-gray-400 transition-all'
-                        }`}
-                      >
-                        {isReviewed ? '승인 ⭕️' : '승인 ❌'}
-                      </p>
+                      <ApprovalResults $status={isReviewed}>
+                        <span className="icon">{isReviewed ? '⚠️' : '✅'}</span>
+                        <span className="label">{isReviewed ? '승인 필요' : '승인 필요 없음'}</span>
+                      </ApprovalResults>
                     </div>
                   </div>
                 </li>

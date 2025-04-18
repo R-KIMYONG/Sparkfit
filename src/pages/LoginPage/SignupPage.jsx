@@ -1,60 +1,61 @@
 import { useValidation } from '@/hooks/useValidation';
 import { useUserStore } from '@/zustand/auth.store';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MdOutlineEmail } from 'react-icons/md';
 import { RiLockPasswordLine, RiUser3Line, RiLockPasswordFill } from 'react-icons/ri';
 import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { getUserErrorMessage } from './getUserErrorMessage';
 import { BsGenderAmbiguous } from 'react-icons/bs';
-import { PiUserCirclePlus } from 'react-icons/pi';
+import { PiUserCirclePlus, PiEye, PiEyeClosed } from 'react-icons/pi';
 const SignupPage = () => {
-  const [nickname, setNickname] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [gender, setGender] = useState('');
+  const nicknameRef = useRef(null);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
+  const genderRef = useRef(null);
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const signUp = useUserStore((state) => state.signUp);
   const navigate = useNavigate();
-  const { pwError, setPwError, emailError, setEmailError, validatePassword, validateEmail } = useValidation();
-
-  const handleChangePassword = (e) => {
-    const { value } = e.target;
-    console.log(e.target);
-    setPassword(value);
-    if (value) {
-      validatePassword(value);
-    } else if (!value) {
-      setPwError('');
-    }
-  };
-
-  const handleChangeEmail = (e) => {
-    const { value } = e.target;
-    setEmail(value);
-    if (value) {
-      validateEmail(value);
-    } else if (!value) {
-      setEmailError('');
-    }
-  };
-
-  const handleGenderChange = (e) => {
-    setGender(e.target.value);
-  };
-
-  const handleConfirmPasswordChange = (e) => {
-    const { value } = e.target;
-    setConfirmPassword(value);
-  };
+  const { emailError, pwError, nicknameError, confirmPasswordError, genderError, validateAll } = useValidation();
 
   const handleSignUp = async (event) => {
     event.preventDefault();
-    if (!email || !password || !nickname || !gender || password !== confirmPassword) {
+    const nickname = nicknameRef.current?.value;
+    const email = emailRef.current?.value;
+    const password = passwordRef.current?.value;
+    const confirmPassword = confirmPasswordRef.current?.value;
+    const gender = genderRef.current?.querySelector('input:checked')?.value;
+
+    const errors = {};
+
+    if (!email) errors.email = '이메일을 입력해주세요.';
+    if (!password) errors.password = '비밀번호를 입력해주세요.';
+    if (!confirmPassword) errors.confirmPassword = '비밀번화확인 입력해주세요';
+    if (!nickname) errors.nickname = '닉네임을 입력해주세요.';
+    if (!gender) errors.gender = '성별을 선택해주세요.';
+
+    const isValid = validateAll({ email, password, confirmPassword, nickname, gender });
+
+    if (Object.keys(errors).length === 1) {
+      const errorMessage = Object.values(errors)[0];
       Swal.fire({
         icon: 'error',
         title: '입력값을 다시 확인해주세요',
-        text: password !== confirmPassword ? '비밀번호가 일치하지 않습니다.' : '모든 필수 정보를 입력해주세요.'
+        text: errorMessage
+      });
+      return;
+    }
+
+    // 오류가 두 개 이상일 경우
+    if (Object.keys(errors).length > 1 || !isValid) {
+      Swal.fire({
+        icon: 'error',
+        title: '입력값을 다시 확인해주세요',
+        text: '입력하지 않은 항목이 있거나 형식이 맞지 않습니다.'
       });
       return;
     }
@@ -62,17 +63,25 @@ const SignupPage = () => {
     try {
       await signUp(email, password, nickname, gender);
 
-      setEmail('');
-      setPassword('');
-      setNickname('');
-      setGender('');
+      if (nicknameRef.current) nicknameRef.current.value = '';
+      if (emailRef.current) emailRef.current.value = '';
+      if (passwordRef.current) passwordRef.current.value = '';
+      if (confirmPasswordRef.current) confirmPasswordRef.current.value = '';
+
+      const checkedGender = genderRef.current?.querySelector('input:checked');
+      if (checkedGender) checkedGender.checked = false;
 
       Swal.fire({
         title: '회원가입 완료!',
         text: '로그인을 해주세요',
         icon: 'success'
       });
-      navigate('/login'); // 회원가입 후 로그인 페이지로 이동
+      navigate('/login', {
+        state: {
+          email,
+          password
+        }
+      });
     } catch (error) {
       Swal.fire({
         icon: 'error',
@@ -87,17 +96,15 @@ const SignupPage = () => {
       name: 'nickname',
       type: 'text',
       placeholder: 'nickname',
-      value: nickname,
-      onChange: (e) => setNickname(e.target.value),
+      ref: nicknameRef,
       Icon: RiUser3Line,
-      error: null
+      error: nicknameError
     },
     {
       name: 'email',
       type: 'email',
       placeholder: 'email',
-      value: email,
-      onChange: handleChangeEmail,
+      ref: emailRef,
       Icon: MdOutlineEmail,
       error: emailError
     },
@@ -105,8 +112,7 @@ const SignupPage = () => {
       name: 'password',
       type: 'password',
       placeholder: 'password',
-      value: password,
-      onChange: handleChangePassword,
+      ref: passwordRef,
       Icon: RiLockPasswordLine,
       error: pwError
     },
@@ -114,12 +120,22 @@ const SignupPage = () => {
       name: 'confirmPassword',
       type: 'password',
       placeholder: 'Confirm password',
-      value: confirmPassword,
-      onChange: handleConfirmPasswordChange,
+      ref: confirmPasswordRef,
       Icon: RiLockPasswordFill,
-      error: null
+      error: confirmPasswordError
+    },
+    {
+      name: 'gender',
+      type: 'radio',
+      ref: genderRef,
+      Icon: BsGenderAmbiguous,
+      error: genderError
     }
   ];
+
+  useEffect(() => {
+    if (nicknameRef.current) nicknameRef.current.focus();
+  }, []);
 
   return (
     <div className="flex justify-center items-center h-[100dvh] bg-customBackground">
@@ -130,45 +146,67 @@ const SignupPage = () => {
         <div className="absolute -top-8 bg-white shadow-lg rounded-full overflow-hidden">
           <PiUserCirclePlus className="text-6xl" />
         </div>
-        {inputFields.map(({ name, type, placeholder, value, onChange, Icon, error }) => (
-          <div key={name} className="w-full items-center border bg-white rounded-full flex gap-2 px-4 relative">
-            <Icon className="text-xl" />
-            <input
-              className="w-full border-none text-xs px-1.5 py-2 focus:outline-none placeholder:text-xs"
-              type={type}
-              placeholder={placeholder}
-              value={value}
-              onChange={onChange}
-              maxLength={name === 'password' && name === 'confirmPassword' ? 20 : 12}
-            />
-            {error && <p className="text-red-300 text-[0.5rem] absolute -bottom-5">{error}</p>}
-          </div>
-        ))}
+        {inputFields.map(({ name, type, placeholder, ref, Icon, error }) => {
+          if (type === 'radio') {
+            return (
+              <div
+                key={name}
+                className="w-full items-center border bg-white rounded-full px-4 py-1.5 flex gap-6 relative"
+              >
+                <Icon className="text-xl" />
+                <div ref={ref} className="flex justify-start gap-4 w-full">
+                  <label className="flex items-center gap-2">
+                    <input type="radio" value="male" name="gender" />
+                    <p className="text-xs">남성</p>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" value="female" name="gender" />
+                    <p className="text-xs">여성</p>
+                  </label>
+                </div>
+                {error && <p className="text-red-300 text-[0.5rem] absolute -bottom-5">{error}</p>}
+              </div>
+            );
+          }
 
-        <div className="w-full items-center border bg-white rounded-full px-4 py-1.5 flex gap-6">
-          <BsGenderAmbiguous className="text-xl" />
-          <div className="flex justify-start gap-4 w-full">
-            <label className="flex items-center gap-2">
-              <input type="radio" value="male" checked={gender === 'male'} onChange={handleGenderChange} />
-              <p className="text-xs">남성</p>
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" value="female" checked={gender === 'female'} onChange={handleGenderChange} />
-              <p className="text-xs">여성</p>
-            </label>
-          </div>
-        </div>
-        <div className="flex items-center w-full gap-4">
-          <button className="w-full text-xs rounded-full bg-customLoginButton text-white p-1.5 cursor-pointer">
+          const isPasswordField = name === 'password' || name === 'confirmPassword';
+          const isVisible = name === 'password' ? showPassword : showConfirmPassword;
+          const toggleVisibility = () =>
+            name === 'password' ? setShowPassword(!showPassword) : setShowConfirmPassword(!showConfirmPassword);
+
+          return (
+            <div key={name} className="w-full items-center border bg-white rounded-full flex gap-2 px-4 relative">
+              <Icon className="text-xl" />
+              <input
+                className="w-full border-none text-xs px-1.5 py-2 focus:outline-none placeholder:text-xs"
+                type={isPasswordField && isVisible ? 'text' : type}
+                placeholder={placeholder}
+                ref={ref}
+                maxLength={isPasswordField ? 14 : 20}
+              />
+              {isPasswordField && (
+                <button type="button" onClick={toggleVisibility} className="text-xl text-gray-400 hover:text-gray-600">
+                  {isVisible ? <PiEye size={15} className="text-xl" /> : <PiEyeClosed size={15} className="text-xl" />}
+                </button>
+              )}
+              {error && <p className="text-red-300 text-[0.5rem] absolute -bottom-5">{error}</p>}
+            </div>
+          );
+        })}
+        <div className="flex items-center w-full gap-4 mt-2">
+          <button
+            type="submit"
+            className="w-full text-xs rounded-full bg-customLoginButton text-white p-1.5 cursor-pointer"
+          >
             회원가입
           </button>
-          <Link
-            to="/login"
-            className="w-full text-xs rounded-full bg-customSignupButton text-black p-1.5 cursor-pointer text-center"
-          >
-            로그인
-          </Link>
         </div>
+        <p className="text-[0.65rem] text-gray-500">
+          이미 계정이 있으신가요?{' '}
+          <Link to="/login" className="text-blue-600 underline hover:text-blue-400">
+            로그인하러 가기
+          </Link>
+        </p>
       </form>
     </div>
   );

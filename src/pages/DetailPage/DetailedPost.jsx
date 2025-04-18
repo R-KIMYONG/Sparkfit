@@ -1,6 +1,6 @@
 import { getPost } from '@/api/postsListApi';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import CreateGroupModal from '../../components/DetailPage/CreateGroupModal';
 import JoinModal from '../../components/DetailPage/JoinModal';
@@ -8,6 +8,7 @@ import { getUser } from '@/api/profileApi';
 import supabase from '@/supabase/supabaseClient';
 import Swal from 'sweetalert2';
 import EditPostModal from './EditPostModal';
+import { PiClockCountdownFill } from 'react-icons/pi';
 import {
   BiSolidZap,
   BiDumbbell,
@@ -21,13 +22,16 @@ import { RiPassPendingFill } from 'react-icons/ri';
 import { AiFillThunderbolt, AiOutlineThunderbolt } from 'react-icons/ai';
 import Loading from '@/components/common/Loading';
 import Error from '@/components/common/Error';
+import dayjs from 'dayjs';
+import useUserId from '@/hooks/useUserId';
+
 const DetailedPost = () => {
   const { id } = useParams();
   const [openJoinModal, setOpenJoinModal] = useState(false);
   const [openCreateGroupModal, setCreateGroupModal] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState(null);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [activeTab, setActiveTab] = useState('memberList');
+  const currentUserId = useUserId();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {
@@ -35,7 +39,12 @@ const DetailedPost = () => {
     isPending: isPostsLoading,
     isError: isPostsError,
     refetch: postsRefetch
-  } = useQuery({ queryKey: ['posts', id], queryFn: () => getPost(id), retry: 1 });
+  } = useQuery({
+    queryKey: ['posts', id],
+    queryFn: () => getPost(id),
+    staleTime: 1000 * 60 * 3,
+    gcTime: 1000 * 60 * 3
+  });
   const postCreatorId = posts?.created_by;
   const { data: user } = useQuery({
     queryKey: ['user', postCreatorId],
@@ -43,11 +52,7 @@ const DetailedPost = () => {
     enabled: !!postCreatorId
   });
 
-  const {
-    data: participantCount = 0,
-    isPending: isCountLoading,
-    isError: isCountError
-  } = useQuery({
+  const { data: participantCount = 0, isPending: isCountLoading } = useQuery({
     queryKey: ['participantCount', id],
     queryFn: async () => {
       const { count, error } = await supabase
@@ -62,13 +67,13 @@ const DetailedPost = () => {
       return count || 0;
     },
     enabled: !!id,
-    retry: 1
+    staleTime: 1000 * 60 * 3,
+    gcTime: 1000 * 60 * 3
   });
 
   const {
     data: isJoined,
     isPending: isJoinedPending,
-    isError: isJoinedError,
     refetch: isJoinedRefetch
   } = useQuery({
     queryKey: ['hasJoined', id, currentUserId],
@@ -85,9 +90,10 @@ const DetailedPost = () => {
 
       return { isJoinedBoolean, userRejected };
     },
-    enabled: !!id && !!currentUserId
+    enabled: !!id && !!currentUserId,
+    staleTime: 1000 * 60 * 3,
+    gcTime: 1000 * 60 * 3
   });
-
   const {
     data: member,
     isPending: isMemberLoading,
@@ -102,7 +108,8 @@ const DetailedPost = () => {
       return data;
     },
     enabled: !!posts?.id,
-    retry: 1
+    staleTime: 1000 * 60 * 3,
+    gcTime: 1000 * 60 * 3
   });
   const {
     data: userInfos,
@@ -113,7 +120,7 @@ const DetailedPost = () => {
     queryKey: ['userInfos', id],
     queryFn: async () => {
       const userIds = member.map((m) => m.user_id);
-      const { data, error } = await supabase.from('userinfo').select('*').in('id', userIds);
+      const { data, error } = await supabase.from('Userinfo').select('*').in('id', userIds);
       const userStatus = data.map((user) => {
         const memberData = member.find((m) => m.user_id === user.id);
         return {
@@ -129,7 +136,8 @@ const DetailedPost = () => {
       return { approvedMembers, pendingMembers };
     },
     enabled: !isMemberLoading && member?.length > 0,
-    retry: 1
+    staleTime: 1000 * 60 * 3,
+    gcTime: 1000 * 60 * 3
   });
   //가입
   const joinMutation = useMutation({
@@ -155,13 +163,25 @@ const DetailedPost = () => {
       await queryClient.refetchQueries({ queryKey: ['userInfos', id] });
       await queryClient.invalidateQueries({ queryKey: ['participantCount', id] });
       await queryClient.invalidateQueries({ queryKey: ['hasJoined', id] });
-      Swal.fire({
-        icon: 'success',
-        title: '가입 완료',
-        text: '모임가입 신청되었습니다!',
-        confirmButtonText: '확인',
-        cancelButtonText: '취소'
-      });
+
+      setOpenJoinModal(false);
+      console.log(posts.isReviewed);
+      const swalOptions = posts?.isReviewed
+        ? {
+            icon: 'success',
+            title: '가입 신청완료',
+            text: '모임가입 신청되었습니다!',
+            confirmButtonText: '확인',
+            cancelButtonText: '취소'
+          }
+        : {
+            icon: 'success',
+            title: '가입 완료',
+            confirmButtonText: '확인',
+            cancelButtonText: '취소'
+          };
+
+      Swal.fire(swalOptions);
     },
     onError: (error) => {
       console.error(error);
@@ -177,12 +197,25 @@ const DetailedPost = () => {
   const leaveMutation = useMutation({
     mutationFn: async (targetUserId) => {
       if (!currentUserId) throw new Error('유저 정보가 없습니다.');
+      Swal.fire({
+        title: '가입 취소 진행 중...',
+        text: '잠시만 기다려 주세요.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
 
       const { error } = await supabase.from('Contracts').delete().match({ place_id: id, user_id: targetUserId });
 
       if (error) throw new Error(error.message);
     },
     onSuccess: async () => {
+      queryClient.setQueryData(['hasJoined', id, currentUserId], (prevData) => ({
+        ...prevData,
+        isJoinedBoolean: false
+      }));
+      await isJoinedRefetch();
       await queryClient.invalidateQueries({ queryKey: ['member', posts?.id] });
       await memberRefetch();
       await userInfosRefetch();
@@ -293,11 +326,14 @@ const DetailedPost = () => {
     }
   });
   // 멤버 승인 요청 리스트에서 승인 버튼 클릭 시
-  const handleMemberAction = (userId, action) => {
-    memberActionMutation.mutate({ userId, action });
-  };
+  const handleMemberAction = useCallback(
+    (userId, action) => {
+      memberActionMutation.mutate({ userId, action });
+    },
+    [memberActionMutation]
+  );
   //모임삭제
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     Swal.fire({
       title: '모임 삭제',
       text: '정말로 이 모임을 삭제하시겠습니까?',
@@ -311,9 +347,9 @@ const DetailedPost = () => {
         deletePost.mutate();
       }
     });
-  };
+  }, [deletePost]);
 
-  const handleJoinOrLeave = () => {
+  const handleJoinOrLeave = useCallback(() => {
     if (currentUserId === postCreatorId) {
       Swal.fire({
         icon: 'error',
@@ -328,24 +364,22 @@ const DetailedPost = () => {
     } else {
       setOpenJoinModal(true);
     }
-  };
+  }, [currentUserId, postCreatorId, isJoined, leaveMutation, setOpenJoinModal]);
 
   useEffect(() => {
-    const authToken = localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token');
-
-    if (authToken) {
-      try {
-        const parsedToken = JSON.parse(authToken);
-        const userId = parsedToken?.user?.id;
-        setCurrentUserId(userId);
-      } catch (error) {
-        console.error('토큰 파싱 실패:', error);
-      }
+    if (isJoinedPending) {
+      Swal.fire({
+        title: '로딩 중...',
+        text: '잠시만 기다려주세요.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
     } else {
-      console.log('토큰을 찾지 못했습니다.');
+      Swal.close();
     }
-  }, []);
-
+  }, [isJoinedPending]);
   const isLoading =
     isPostsLoading &&
     isMemberLoading &&
@@ -354,37 +388,56 @@ const DetailedPost = () => {
     isJoinedPending &&
     currentUserId === null;
   const isError = isPostsError || isMemberError || isUserInfosError;
+  const today = dayjs();
+  const daysLeft = useMemo(() => {
+    if (!posts?.deadline) return '정보 없음';
+    const diff = dayjs(posts.deadline).diff(today, 'day');
+    if (diff < 0) return '마감';
+    return `${diff + 1}일전`;
+  }, [posts?.deadline]);
 
-  if (isLoading) {
+  const postDetails = useMemo(
+    () => [
+      { icon: <BiSolidZap />, label: '모임명', value: posts?.gather_name || '정보 없음' },
+      { icon: <BiDumbbell />, label: '스포츠명', value: posts?.sports_name || '정보 없음' },
+      { icon: <BiSolidBeenHere />, label: '주소', value: posts?.region || '정보 없음' },
+      { icon: <BiSolidAlarm />, label: '마감기한', value: posts?.deadline || '정보 없음' },
+      {
+        icon: <PiClockCountdownFill className={`${daysLeft === '마감' ? 'text-red-500' : 'text-blcak'}`} />,
+        label: '남은일수',
+        value: <span className={`${daysLeft === '마감' ? 'text-red-500' : 'text-blcak'}`}>{daysLeft}</span>
+      },
+      {
+        icon: <BiSolidGroup />,
+        label: '모집현황',
+        value: posts?.max_participants ? `${participantCount} / ${posts.max_participants}` : '정보 없음'
+      },
+      {
+        icon: <RiPassPendingFill />,
+        label: '승인대기',
+        value:
+          userInfos?.pendingMembers.length > 0 ? `${userInfos?.pendingMembers.length}명 승인대기 중` : '승인대기 없음'
+      },
+      { icon: <BiBookReader />, label: '모임설명', value: posts?.texts || '정보 없음' },
+      { icon: <BiSolidUserCheck />, label: '조건', value: posts?.isReviewed ? '가입승인 필요' : '아무나 가입가능' }
+    ],
+    [posts, daysLeft, participantCount, userInfos]
+  );
+
+  if (isPostsLoading) {
     return <Loading />;
   }
   if (isError) {
-    return <Error message="모임 정보를 가져오는데 실패했습니다. " />;
+    return <Error message="모임 정보를 가져오는데 실패했습니다." />;
   }
-  const postDetails = [
-    { icon: <BiSolidZap />, label: '모임명', value: posts?.gather_name || '정보 없음' },
-    { icon: <BiDumbbell />, label: '스포츠명', value: posts?.sports_name || '정보 없음' },
-    { icon: <BiSolidBeenHere />, label: '주소', value: posts?.region || '정보 없음' },
-    { icon: <BiSolidAlarm />, label: '마감기한', value: posts?.deadline || '정보 없음' },
-    {
-      icon: <BiSolidGroup />,
-      label: '모집현황',
-      value: posts?.max_participants ? `${participantCount} / ${posts.max_participants}` : '정보 없음'
-    },
-    {
-      icon: <RiPassPendingFill />,
-      label: '승인대기',
-      value:
-        userInfos?.pendingMembers.length > 0 ? `${userInfos?.pendingMembers.length}명 승인대기 중` : '승인대기 없음'
-    },
-    { icon: <BiBookReader />, label: '모임설명', value: posts?.texts || '정보 없음' },
-    { icon: <BiSolidUserCheck />, label: '조건', value: posts?.isReviewed ? '가입승인 필요' : '아무나 가입가능' }
-  ];
+
   return (
     <>
       <div className="w-[1280px] mt-[2rem] md:w-[80%] min-[320px]:w-[80%] lg:w-[80%] lg:mx-auto lg:ml-[150px]  md:ml-[130px] md:mx-0px auto; sm:w-[80%] sm:mx-auto sm:ml-[110px] pb-[5rem]">
         <div className="flex justify-between items-center w-full">
-          <div className="text-base font-bold mb-2">{posts?.gather_name}</div>
+          <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-orange-500 drop-shadow-sm tracking-tight animate-pulse">
+            {posts?.gather_name}
+          </div>
           {currentUserId === postCreatorId ? (
             <div className="flex gap-4">
               <button
@@ -405,6 +458,9 @@ const DetailedPost = () => {
           ) : (
             <div className="flex items-center gap-2">
               <p>{isJoined?.userRejected === 'rejected' ? '❗️관리자로부터 가입거절됬습니다.' : ''}</p>
+              <p className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                {posts?.isReviewed && isJoined?.isJoinedBoolean && '⏳ 승인 대기중'}
+              </p>
               <button
                 onClick={handleJoinOrLeave}
                 className={`border border-none rounded-md text-white font-bold px-[1rem] py-[0.5rem] text-xs shadow-xl shadow-[#C9E5FF] ${
@@ -426,14 +482,14 @@ const DetailedPost = () => {
           )}
         </div>
         {/* 모임장 정보 */}
-        <div className=" rounded-full border-none flex flex-row gap-4 items-center mb-2 bg-[#EBF7FF] px-8 py-5 box-border mt-[1.5rem] flex-wrap">
+        <div className=" rounded-md border-none flex flex-row gap-4 items-center mb-2 bg-[#EBF7FF] px-8 py-5 box-border mt-[1.5rem] flex-wrap">
           <img src={user?.profile_image || '/Ellipse1.png'} alt="기본" className="w-[50px] h-[50px] rounded-full" />
           <div className="flex mx-2 items-center flex-col item-center text-center">
             <p className="text-xs">모임장 : {user?.username}</p>
             <p className="text-xs text-gray-400">{user?.email}</p>
           </div>
-          <div className="flex-grow">
-            <p className="text-xs">{user?.introduce}</p>
+          <div className="flex-grow w-full">
+            <p className="text-xs line-clamp-3 break-words overflow-hidden">{user?.introduce}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-3 mt-4">
@@ -455,7 +511,7 @@ const DetailedPost = () => {
           .map((detail, index) => (
             <div key={index} className="w-full bg-[#F1F1F1] rounded-md p-4 text-sm mt-4">
               <div className="text-xl mb-2">{detail.icon}</div>
-              <p>{detail.value}</p>
+              <p className="line-clamp-3 break-words overflow-hidden">{detail.value}</p>
             </div>
           ))}
 
@@ -488,35 +544,41 @@ const DetailedPost = () => {
           )}
         </div>
 
-        <ul className="flex gap-3">
+        <ul className="grid grid-cols-[repeat(auto-fit,_minmax(15rem,_1fr))] gap-3">
           {userInfos && activeTab === 'memberList' && userInfos?.approvedMembers.length > 0 ? (
             userInfos?.approvedMembers?.map((info) => {
               const defaultAvatar = info.gender === 'male' ? '/Ellipse1.png' : '/Ellipse2.png';
               const avatarSrc = info.profile_image || defaultAvatar;
               return (
-                <li key={info.id} className=" border-b py-2 bg-[#EBF7FF] p-4 rounded-md">
-                  <div className="flex items-center gap-3">
-                    <img src={avatarSrc} alt="프로필" className="w-10 h-10 rounded-full" />
-                    <div>
-                      <p className="text-sm font-semibold">{info.username}</p>
-                      <p className="text-xs text-gray-500">{info.email}</p>
-                      <p className="text-xs text-gray-500">성별 : {info.gender === 'male' ? '남' : '여'}</p>
+                <li
+                  key={info.id}
+                  className="border-b py-2 bg-[#EBF7FF] p-4 rounded-md flex flex-col min-w-[20%] max-w-full"
+                >
+                  <div className="flex justify-between items-center gap-3">
+                    <div className="flex items-center gap-3">
+                      <img src={avatarSrc} alt="프로필" className="w-10 h-10 rounded-full" />
+                      <div>
+                        <p className="text-sm font-semibold">{info.username}</p>
+                        <p className="text-xs text-gray-500">{info.email}</p>
+                        <p className="text-xs text-gray-500">성별 : {info.gender === 'male' ? '남' : '여'}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <p className="text-xs">자기 소개</p>
-                    <p className="text-xs">{info.introduce || '자기 소개글이 없습니다.'}</p>
-                  </div>
-                  {currentUserId === postCreatorId && (
-                    <div className="flex justify-between mt-2">
+
+                    {currentUserId === postCreatorId && (
                       <button
                         onClick={() => handleMemberAction(info.id, 'rejected')}
                         className="text-xs px-3 py-1.5 border-none bg-btn-red rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-red-400 transition-all"
                       >
                         탈퇴
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                  <div className="mt-2 min-h-[4rem]">
+                    <p className="text-xs">자기 소개</p>
+                    <p className="text-xs break-all whitespace-pre-line w-full">
+                      {info.introduce || '자기 소개글이 없습니다.'}
+                    </p>
+                  </div>
                 </li>
               );
             })
@@ -529,12 +591,15 @@ const DetailedPost = () => {
         {activeTab === 'pendingList' && (
           <>
             {userInfos?.pendingMembers?.length > 0 ? (
-              <ul className="flex gap-3">
+              <ul className="grid grid-cols-[repeat(auto-fit,_minmax(15rem,_1fr))] gap-3">
                 {userInfos.pendingMembers.map((info) => {
                   const defaultAvatar = info.gender === 'male' ? '/Ellipse1.png' : '/Ellipse2.png';
                   const avatarSrc = info.profile_image || defaultAvatar;
                   return (
-                    <li key={info.id} className="border-b py-2 bg-[#EBF7FF] p-4 rounded-md">
+                    <li
+                      key={info.id}
+                      className="border-b py-2 bg-[#EBF7FF] p-4 rounded-md flex flex-col min-w-[25%] max-w-full"
+                    >
                       <div className="flex items-center gap-3">
                         <img src={avatarSrc} alt="프로필" className="w-10 h-10 rounded-full" />
                         <div>
@@ -543,11 +608,7 @@ const DetailedPost = () => {
                           <p className="text-xs text-gray-500">성별 : {info.gender === 'male' ? '남' : '여'}</p>
                         </div>
                       </div>
-                      <div>
-                        <p className="text-xs">자기 소개</p>
-                        <p className="text-xs">{info.introduce || '자기 소개글이 없습니다.'}</p>
-                      </div>
-                      <div className="flex justify-between mt-2">
+                      <div className="flex items-center mt-2">
                         <button
                           onClick={() => handleMemberAction(info.id, 'approved')}
                           className="text-xs px-3 py-1.5 border-none bg-btn-blue rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-blue-400 transition-all"
@@ -560,6 +621,13 @@ const DetailedPost = () => {
                         >
                           거절
                         </button>
+                      </div>
+
+                      <div className="mt-2 min-h-[4rem]">
+                        <p className="text-xs">자기 소개</p>
+                        <p className="text-xs break-all whitespace-pre-line w-full">
+                          {info.introduce || '자기 소개글이 없습니다.'}
+                        </p>
                       </div>
                     </li>
                   );
@@ -579,7 +647,14 @@ const DetailedPost = () => {
           }}
         />
       )}
-      {openEditModal && <EditPostModal close={() => setOpenEditModal(false)} post={posts} postId={id} />}
+      {openEditModal && (
+        <EditPostModal
+          close={() => setOpenEditModal(false)}
+          post={posts}
+          postId={id}
+          participantCount={participantCount}
+        />
+      )}
     </>
   );
 };

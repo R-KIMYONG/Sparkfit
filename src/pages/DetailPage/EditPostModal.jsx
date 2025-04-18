@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import supabase from '@/supabase/supabaseClient';
 import { exercises } from '@/components/DetailPage/exercises';
-import Select from 'react-select';
-const EditPostModal = ({ close, post, postId }) => {
+
+import CreatableSelect from 'react-select/creatable';
+import { handleInputChangeWithLimit } from '@/utils/selectFn/handleInputChangeWithLimit';
+const EditPostModal = ({ close, post, postId, participantCount }) => {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
   const [formData, setFormData] = useState({
     gatherName: post?.gather_name || '',
     description: post?.texts || '',
@@ -12,6 +21,7 @@ const EditPostModal = ({ close, post, postId }) => {
     deadline: post?.deadline || '',
     max_participants: post?.max_participants || 1
   });
+  const [selectedInputValue, setSelectedInputValue] = useState('');
   const queryClient = useQueryClient();
   const updateMutation = useMutation({
     mutationFn: async () => {
@@ -23,6 +33,10 @@ const EditPostModal = ({ close, post, postId }) => {
         deadline: formData.deadline,
         max_participants: formData.max_participants
       };
+
+      if (formData.max_participants < participantCount) {
+        throw new Error(`이미 가입된 회원 수보다 적게 설정할 수 없습니다.`);
+      }
 
       const { data, error } = await supabase
         .from('Places')
@@ -52,15 +66,23 @@ const EditPostModal = ({ close, post, postId }) => {
     }
   });
 
-  const handleUpdate = () => {
-    if (!formData.gatherName || !formData.description || !formData.sportsName || !formData.deadline) {
+  const handleUpdate = (e) => {
+    e.preventDefault();
+    const missingFields = [];
+
+    if (!formData.gatherName) missingFields.push('모임명');
+    if (!formData.description) missingFields.push('모집 설명');
+    if (!formData.sportsName) missingFields.push('스포츠명');
+    if (!formData.deadline) missingFields.push('마감 기한');
+    if (missingFields.length > 0) {
       Swal.fire({
         icon: 'warning',
         title: '입력 값 확인',
-        text: '모든 필드를 작성해주세요.'
+        text: `${missingFields.join(', ')} 필드를 작성해주세요.`
       });
       return;
     }
+
     updateMutation.mutate();
   };
 
@@ -69,8 +91,26 @@ const EditPostModal = ({ close, post, postId }) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleSelectSportsInputChange = (value) => {
+    const newValue = handleInputChangeWithLimit(value, 10);
+    setSelectedInputValue(newValue);
+  };
+
+  const handleSelectChange = useCallback((selected) => {
+    setFormData((prev) => {
+      if (!selected) {
+        return { ...prev, sportsName: '' };
+      }
+
+      if (prev.sportsName !== selected.value) {
+        return { ...prev, sportsName: selected.value };
+      }
+      return prev;
+    });
+  }, []);
+
   const postDetails = [
-    { name: 'gatherName', placeholder: '모임명', type: 'text' },
+    { name: 'gatherName', placeholder: '모임명', type: 'text', maxLength: 20 },
     {
       name: 'sportsName',
       placeholder: '스포츠명',
@@ -78,28 +118,34 @@ const EditPostModal = ({ close, post, postId }) => {
       options: exercises.map((sport) => ({ label: sport, value: sport }))
     },
     { name: 'deadline', placeholder: '마감 기한', type: 'date' },
-    { name: 'description', placeholder: '모집 설명', type: 'textarea' },
+    { name: 'description', placeholder: '모집 설명', type: 'textarea', maxLength: 200 },
     { name: 'max_participants', placeholder: '모집인원수', type: 'number', min: 1 }
   ];
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50">
       <div className={`bg-white p-6 rounded-lg w-[90%] xl:w-[35%] lg:w-1/3 md:w-1/3 sm:w-2/4 sm:ml-[6rem]`}>
         <h2 className="text-xl font-semibold mb-4">모임 정보 수정</h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleUpdate();
-          }}
-        >
-          {postDetails.map(({ name, placeholder, type, options, min }) => (
+        <form onSubmit={handleUpdate}>
+          {postDetails.map(({ name, placeholder, type, options, min, maxLength }) => (
             <div key={name} className="mb-4">
               {type === 'select' ? (
-                <Select
+                <CreatableSelect
                   options={options}
                   placeholder={placeholder}
-                  value={options?.find((option) => option.value === formData.sportsName) || null}
-                  onChange={(selected) => setFormData((prev) => ({ ...prev, [name]: selected.value }))}
+                  value={
+                    formData.sportsName
+                      ? options.find((option) => option.value === formData.sportsName) || {
+                          label: formData.sportsName,
+                          value: formData.sportsName
+                        }
+                      : null
+                  }
+                  onChange={handleSelectChange}
                   className="text-xs"
+                  formatCreateLabel={(inputValue) => `"${inputValue}" 생성 (최대 10자)`}
+                  isClearable
+                  inputValue={selectedInputValue}
+                  onInputChange={handleSelectSportsInputChange}
                 />
               ) : type === 'textarea' ? (
                 <div className="relative w-full h-full">
@@ -112,7 +158,7 @@ const EditPostModal = ({ close, post, postId }) => {
                     autoComplete="off"
                     placeholder={placeholder + ' (최대 200자)'}
                     rows={4}
-                    maxLength={200}
+                    maxLength={maxLength}
                   />
                   <span className="text-[8px] text-gray-300 absolute right-3 bottom-2">
                     {formData[name].length}/200
@@ -128,6 +174,7 @@ const EditPostModal = ({ close, post, postId }) => {
                   autoComplete="off"
                   min={min}
                   placeholder={placeholder}
+                  maxLength={maxLength}
                 />
               )}
             </div>
