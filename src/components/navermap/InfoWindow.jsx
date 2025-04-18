@@ -73,7 +73,7 @@ function InfoWindow({ place, infoWindow, navigate, user, contracts }) {
       </div>
       <div className="w-full pt-2 text-sm">
         <h4 className="text-lg py-2">{place.gather_name}</h4>
-        <p>{place.texts}</p>
+        <p className="overflow-hidden text-ellipsis whitespace-nowrap">{place.texts}</p>
       </div>
     </>
   );

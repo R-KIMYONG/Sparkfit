@@ -1,22 +1,20 @@
-import supabase from '@/supabase/supabaseClient';
 import { useUserStore } from '@/zustand/auth.store';
 import { usePlacesCount } from '@/zustand/placescount.store';
-import { useCallback, useEffect, useState } from 'react';
-import { RiArrowGoBackLine, RiCloseFill, RiInformationFill, RiSearchLine } from 'react-icons/ri';
-import Modal from 'react-modal';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { RiArrowGoBackLine, RiInformationFill } from 'react-icons/ri';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import logo from './../assets/logo.png';
 import { getSidebarMenus, getBottomMenus, getMobileMenus } from './sidebarMenus';
+import useUserId from '@/hooks/useUserId';
+import { useSearchStore } from '@/zustand/searchModal.store';
 
 export default function Sidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeItem, setActiveItem] = useState('홈');
   const signOut = useUserStore((state) => state.signOut);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const currentDate = new Date().toISOString().split('T')[0];
+  const { openModal } = useSearchStore();
   const {
     placesCount,
     startFetching,
@@ -26,22 +24,9 @@ export default function Sidebar() {
     resetContractsNotification,
     resetPlacesNotification
   } = usePlacesCount((state) => state);
-  const [userId, setUserId] = useState(null);
-  // console.log(hasNewContracts);
-  // console.log(hasNewPlaces);
+
+  const userId = useUserId();
   useEffect(() => {
-    const authToken = localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token');
-    if (authToken) {
-      try {
-        const parsedToken = JSON.parse(authToken);
-        const userId = parsedToken?.user?.id;
-        setUserId(userId);
-      } catch (error) {
-        console.error('토큰 파싱 실패:', error);
-      }
-    } else {
-      console.log('토큰을 찾지 못했습니다.');
-    }
     if (userId) {
       startFetching(userId);
     }
@@ -50,74 +35,6 @@ export default function Sidebar() {
     };
   }, [startFetching, stopFetching, userId]);
 
-  const openModal = () => {
-    setActiveItem('검색');
-    setIsModalOpen(true);
-    setSearchKeyword('');
-    document.body.style.overflow = 'hidden';
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    document.body.style.overflow = 'visible';
-    setSearchResults([]);
-  };
-
-  const searchPlace = useCallback(
-    async (e) => {
-      e.preventDefault();
-      if (!searchKeyword.trim()) {
-        Swal.fire({
-          title: '검색 실패',
-          text: '검색어를 입력하세요',
-          icon: 'warning',
-          confirmButtonText: '확인',
-          cancelButtonText: '취소'
-        });
-        setSearchResults([]);
-        return;
-      }
-      Swal.fire({
-        title: '검색 중입니다...',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-
-      try {
-        const { data, error } = await supabase
-          .from('Places')
-          .select()
-          .or(
-            `region.ilike.%${searchKeyword}%,sports_name.ilike.%${searchKeyword}%,gather_name.ilike.%${searchKeyword}%`
-          )
-          .gt('deadline', currentDate)
-          .order('deadline', { ascending: true });
-        if (error) {
-          console.log('error =>', error);
-          Swal.fire({
-            title: '검색 실패!',
-            text: `에러: ${error.message}`,
-            icon: 'error'
-          });
-          return;
-        }
-        setSearchResults([...data]);
-        Swal.close();
-      } catch (error) {
-        console.log('서버 통신 error => ', error);
-        Swal.fire({
-          title: '서버 통신 오류!',
-          text: `에러: ${error.message}`,
-          icon: 'error'
-        });
-        Swal.close();
-      }
-    },
-    [searchKeyword]
-  );
   const handleSignOut = async () => {
     try {
       const result = await Swal.fire({
@@ -150,7 +67,14 @@ export default function Sidebar() {
       });
     }
   };
-  const sidebarMenus = getSidebarMenus({ openModal, navigate, placesCount, hasNewPlaces, resetPlacesNotification });
+  const sidebarMenus = getSidebarMenus({
+    openModal,
+    navigate,
+    location,
+    placesCount,
+    hasNewPlaces,
+    resetPlacesNotification
+  });
   const bottomMenus = getBottomMenus({
     navigate,
     handleSignOut,
@@ -159,6 +83,7 @@ export default function Sidebar() {
   const mobileMenus = getMobileMenus({
     navigate,
     openModal,
+    location,
     handleSignOut,
     placesCount,
     hasNewPlaces,
@@ -272,84 +197,7 @@ export default function Sidebar() {
           }}
         />
       </div>
-      <Modal
-        isOpen={isModalOpen}
-        onRequestClose={closeModal}
-        contentLabel="번개 검색 모달"
-        className="modal inset-0 items-center z-50 "
-        overlayClassName="overlay fixed inset-0 bg-black bg-opacity-50 z-40"
-      >
-        <div className="bg-white p-6 rounded-lg sm:w-2/3 absolute min-[320px]:translate-x-[-50%] min-[320px]:translate-y-[-50%] min-[320px]:top-[50%] min-[320px]:left-[50%] min-[320px]:w-[90%]">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="sm:text-2xl font-bold text-xl flex items-center gap-3">
-              <RiSearchLine /> SparkFit 검색{' '}
-            </h2>
-
-            <button onClick={closeModal} className="w-logowidth h-logoheight">
-              <RiCloseFill className="w-full h-full hover:rotate-90 transition-transform" />
-            </button>
-          </div>
-          <form onSubmit={searchPlace}>
-            <div className="flex gap-4 justify-between">
-              <input
-                type="text"
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-                placeholder="지역 또는 스포츠명을 입력하세요"
-                className="px-3 py-2 border rounded sm:w-5/6 box-border w-full"
-                maxLength={30}
-              />
-              <button
-                type="submit"
-                className="bg-customLoginButton text-white py-1 min-[320px]:w-1/6 min-[320px]:text-xs min-[320px] rounded box-border font-bold text-sm"
-              >
-                검색
-              </button>
-            </div>
-            <span className="text-xs text-gray-500">
-              결과 : {searchResults.length > 99 ? '99+' : searchResults.length}
-            </span>
-          </form>
-          <div className="h-[25rem] overflow-y-scroll text-xs scrollbar-hide">
-            {searchResults.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
-                {searchResults.map((item) => (
-                  <li key={item.id} className="px-2 py-4 box-border shadow-xl rounded-md">
-                    <p className=" font-bold sm:text-sm ">{item.gather_name}</p>
-                    <div className="flex justify-between items-center">
-                      <div className="flex flex-col gap-2 mt-2 flex-wrap">
-                        <p className="text-gray-700 sm:text-sm">
-                          {item.texts.length > 20 ? `${item.texts.slice(0, 20)}...` : item.texts}
-                        </p>
-                        <p className="text-gray-500 sm:text-md">모집기한: {item.deadline}</p>
-                        <p className="text-gray-500 sm:text-md">생성일 : {item.created_at.slice(0, 10)}</p>
-                        <div className="text-gray-500">
-                          <span>{item.region}</span> | <span>{item.sports_name}</span> |{' '}
-                          <span>모집인원 : {item.max_participants}</span>
-                        </div>
-                      </div>
-
-                      <button
-                        className="bg-customLoginButton text-white px-2 py-1 rounded box-border"
-                        onClick={() => {
-                          navigate(`/detail/${item.id}`);
-                          closeModal();
-                        }}
-                      >
-                        상세보기
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-center text-gray-500 mt-2 sm:text-md text-xl min-[320px]:text-xs">
-                검색 결과가 없습니다.
-              </p>
-            )}
-          </div>
-        </div>
-      </Modal>
+      {/*사이드바 검색 모달 */}
     </>
   );
 }

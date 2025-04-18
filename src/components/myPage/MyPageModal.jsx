@@ -1,29 +1,16 @@
 import supabase from '@/supabase/supabaseClient';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import useOutsideClick from '../DetailPage/useOutsideClick';
-
+import useUserId from '@/hooks/useUserId';
+import Swal from 'sweetalert2';
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
 const MyPageModal = ({ close, nickname, setNickname, setImage, introduce, setIntroduce }) => {
   const [newNickname, setNewNickname] = useState(nickname);
   const [newIntroduce, setNewIntroduce] = useState(introduce);
   const [file, setFile] = useState(null);
-  const [userData, setUserData] = useState(null);
   const myModalRef = useRef(null);
 
-  useEffect(() => {
-    const getUserData = () => {
-      const authToken = localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token');
-      if (!authToken) return console.log('토큰을 찾지 못했습니다.');
-
-      try {
-        const parsedToken = JSON.parse(authToken);
-        setUserData(parsedToken?.user?.id || null);
-      } catch (error) {
-        console.error('토큰 파싱 실패:', error);
-      }
-    };
-
-    getUserData();
-  }, []);
+  const userId = useUserId();
 
   const handleCloseModal = () => {
     setFile(null);
@@ -32,63 +19,97 @@ const MyPageModal = ({ close, nickname, setNickname, setImage, introduce, setInt
 
   useOutsideClick(myModalRef, handleCloseModal);
 
-  const handleFileChange = (event) => setFile(event.target.files[0]);
+  const handleFileChange = (event) => {
+    const selectedFile = event.target.files[0];
+    if (!selectedFile) return;
+
+    if (!ALLOWED_IMAGE_TYPES.includes(selectedFile.type)) {
+      Swal.fire({
+        icon: 'warning',
+        title: '지원하지 않는 파일 형식입니다',
+        text: 'JPG, JPEG, PNG, GIF 파일만 업로드할 수 있어요.',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: '확인'
+      });
+      event.target.value = '';
+      return;
+    }
+    setFile(selectedFile);
+  };
+
+  const uploadImageToSupabase = async (file, userId) => {
+    const fileName = `image_${userId}_${Date.now()}`;
+
+    const { error: uploadError } = await supabase.storage.from('imagefile').upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: true
+    });
+
+    if (uploadError) throw uploadError;
+
+    const { data: publicUrlData } = supabase.storage.from('imagefile').getPublicUrl(fileName);
+    return publicUrlData.publicUrl;
+  };
+
+  const updateUserInfo = async ({ userId, nickname, introduce, imageUrl }) => {
+    const updates = {
+      username: nickname,
+      introduce
+    };
+    if (imageUrl) updates.profile_image = imageUrl;
+
+    const { error } = await supabase.from('Userinfo').update(updates).eq('id', userId);
+    if (error) throw error;
+  };
 
   const handleProfile = async () => {
-    try {
-      if (!userData) {
-        console.error('유저 정보를 찾을 수 없습니다.');
-        return;
+    if (!userId) {
+      console.error('유저 정보를 찾을 수 없습니다.');
+      return;
+    }
+    Swal.fire({
+      title: '업로드 중...',
+      text: '잠시만 기다려주세요.',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
       }
-
+    });
+    try {
       let publicUrl = null;
       if (file) {
-        const fileName = `image_${userData}_${Date.now()}`;
-
-        const { data: profileImage, error: uploadError } = await supabase.storage
-          .from('imageFile')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: true
-          });
-
-        if (uploadError) return;
-
-        const { data: publicUrlData } = supabase.storage.from('imageFile').getPublicUrl(fileName);
-        publicUrl = publicUrlData.publicUrl;
-
-        const { data: updateData, error: updateError } = await supabase
-          .from('userinfo')
-          .update({
-            profile_image: publicUrl
-          })
-          .eq('id', userData);
-
-        if (updateError) {
-          console.log('updateError : ', updateError);
-        } else {
-          setImage(publicUrl);
-        }
+        publicUrl = await uploadImageToSupabase(file, userId);
+        setImage(publicUrl);
       }
+      await updateUserInfo({
+        userId,
+        nickname: newNickname,
+        introduce: newIntroduce,
+        imageUrl: publicUrl
+      });
 
-      const { data: userNameData, error: userNameError } = await supabase
-        .from('userinfo')
-        .update({
-          username: newNickname,
-          introduce: newIntroduce
-        })
-        .eq('id', userData);
-
-      if (userNameError) {
-        console.log('username error : ', userNameError);
-      } else {
-        setNickname(newNickname);
-        setIntroduce(newIntroduce);
-      }
+      setNickname(newNickname);
+      setIntroduce(newIntroduce);
+      Swal.fire({
+        icon: 'success',
+        title: '변경 완료!',
+        text: '정보가 성공적으로 수정되었어요.',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: '확인'
+      });
+      handleCloseModal();
     } catch (error) {
       console.log(error);
+      Swal.fire({
+        icon: 'error',
+        title: '오류 발생',
+        text: '다시 시도해주세요.',
+        confirmButtonText: '확인'
+      });
+    } finally {
+      Swal.close();
     }
-    handleCloseModal();
   };
 
   return (
@@ -108,6 +129,7 @@ const MyPageModal = ({ close, nickname, setNickname, setImage, introduce, setInt
               value={newNickname}
               onChange={(e) => setNewNickname(e.target.value)}
               id="newNickname"
+              maxLength={10}
             />
             <label htmlFor="newIntroduce" className="ml-1">
               자기소개

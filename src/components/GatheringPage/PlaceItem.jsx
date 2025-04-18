@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 const PlaceItem = ({ place }) => {
   const navigate = useNavigate();
   const [participantCount, setParticipantCount] = useState(0);
-
+  const [host, setHost] = useState(null);
   useEffect(() => {
     const fetchParticipantCount = async () => {
       const { count, error } = await supabase
@@ -23,6 +23,22 @@ const PlaceItem = ({ place }) => {
 
     fetchParticipantCount();
   }, [place.id]);
+
+  useEffect(() => {
+    const fetchHostInfo = async () => {
+      const { data, error } = await supabase.from('Userinfo').select('*').eq('id', place.created_by).single();
+
+      if (error) {
+        console.error('모임장 정보 조회 오류:', error.message);
+      } else {
+        setHost(data);
+      }
+    };
+
+    if (place.created_by) {
+      fetchHostInfo();
+    }
+  }, [place.created_by]);
   return (
     <div key={place.id} className="flex bg-[#ffffff] p-4 shadow-lg rounded-xl relative w-full">
       {/* 모임 설명 */}
@@ -50,14 +66,29 @@ const PlaceItem = ({ place }) => {
               )} km 이내`}</li>
             </ul>
           </div>
-
-          <p className="text-sm lg:w-[80%] md:w-[100%] sm:w-full overflow-hidden text-ellipsis line-clamp-2 ">
-            {place.texts}
-          </p>
+          <div className="flex items-center gap-1">
+            <span className="font-medium text-gray-600">👤 모임장:</span>
+            <span className="text-gray-800">{host?.username}</span>
+          </div>
+          <div className="text-sm text-gray-700">
+            <div className="font-medium text-gray-600 mb-1 flex items-center gap-1">
+              📝 <span>모임소개:</span>
+            </div>
+            <p className="text-sm lg:w-[80%] md:w-[100%] sm:w-full overflow-hidden text-ellipsis whitespace-nowrap">
+              {place.texts}
+            </p>
+          </div>
           <div className="flex flex-row gap-4">
             <p className="text-[#999] text-xs">{`${place.deadline} 마감`}</p>
             <p className="text-[#999] text-xs">{`인원 ${participantCount}/${place.max_participants}`}</p>
-            <p className="text-[#999] text-xs">{place.isReviewed ? '승인 ⭕️' : '승인 ❌'}</p>
+            <p className="flex items-center text-xs">
+              <span className={`mr-1 ${place.isReviewed ? 'text-red-500' : 'text-green-500'}`}>
+                {place.isReviewed ? '⚠️' : '✅'}
+              </span>
+              <span className={place.isReviewed ? 'text-red-500' : 'text-green-500'}>
+                {place.isReviewed ? '승인 필요' : '승인 필요 없음'}
+              </span>
+            </p>
           </div>
         </div>
       </div>

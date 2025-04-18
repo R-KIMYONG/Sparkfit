@@ -2,7 +2,6 @@ import { useRef } from 'react';
 import useOutsideClick from './useOutsideClick';
 
 const AlertModal = ({ close }) => {
-  // const [name, setName] = useState('');
   const modalRef = useRef(null);
 
   const handleClose = () => {

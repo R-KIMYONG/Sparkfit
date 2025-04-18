@@ -1,22 +1,25 @@
 import supabase from '@/supabase/supabaseClient';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { HiPencilSquare } from 'react-icons/hi2';
 import { RiUser3Line } from 'react-icons/ri';
 import Loading from '../common/Loading';
-import { STSection } from './MyPage';
 import MyPageModal from './MyPageModal';
 import Error from '../common/Error';
 
+import useUserId from '@/hooks/useUserId';
+import { STSection } from '../common/commonStyle';
+
 const UserInfo = () => {
   const [myPageModal, setMyPageModal] = useState(false);
-  const [userData, setUserData] = useState(null);
+
   const [nickname, setNickname] = useState('');
   const [image, setImage] = useState('');
   const [introduce, setIntroduce] = useState('');
+  const userId = useUserId();
   const getUserInfo = async () => {
-    if (!userData) return;
-    const { data, error } = await supabase.from('userinfo').select('*').eq('id', userData);
+    if (!userId) return;
+    const { data, error } = await supabase.from('Userinfo').select('*').eq('id', userId);
 
     if (error) {
       console.log(error);
@@ -27,29 +30,15 @@ const UserInfo = () => {
     }
     return data;
   };
-  useEffect(() => {
-    const authToken = localStorage.getItem('sb-muzurefacnghaayepwdd-auth-token');
 
-    if (authToken) {
-      try {
-        const parsedToken = JSON.parse(authToken);
-        const userId = parsedToken?.user?.id;
-        setUserData(userId);
-      } catch (error) {
-        console.error('토큰 파싱 실패:', error);
-      }
-    } else {
-      console.log('토큰을 찾지 못했습니다.');
-    }
-  }, []);
   const {
     data: theUser,
     isPending,
-    error: usersError
+    isError: usersError
   } = useQuery({
     queryKey: ['Users'],
     queryFn: getUserInfo,
-    enabled: !!userData
+    enabled: !!userId
   });
   if (isPending) {
     return <Loading />;
@@ -77,7 +66,7 @@ const UserInfo = () => {
             </div>
           </div>
           <div className="flex-1 min-w-[200px]">
-            <p className="text-sm text-gray-400 h-full">
+            <p className="text-sm text-gray-400 h-full whitespace-normal break-words">
               {theUser && introduce ? introduce : '자기 소개를 추가해주세요'}
             </p>
           </div>

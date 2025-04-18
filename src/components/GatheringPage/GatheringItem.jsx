@@ -46,10 +46,12 @@ const GatheringItem = () => {
         // 최신등록순 정렬
         placeList = placeList.sort((a, b) => b.created_at.localeCompare(a.created_at));
       }
-      setSortedPlace(placeList);
-      setLoading(false);
+      if (JSON.stringify(sortedPlace) !== JSON.stringify(placeList)) {
+        setSortedPlace(placeList);
+        setLoading(false);
+      }
     }
-  }, [gps, placesLoading, selectedButton, sortPlaces]);
+  }, [gps, placesLoading, selectedButton, sortPlaces, places, setLoading, sortedPlace]);
   return (
     <div className="flex-1 overflow-auto scrollbar-hide overflow-x-hidden">
       <div className="flex flex-col gap-4 w-[90%] mx-auto pb-20">

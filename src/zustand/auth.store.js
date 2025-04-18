@@ -23,7 +23,7 @@ export const useUserStore = create((set) => ({
       const userId = signUpData.user.id;
 
       const { data: userData, error: userError } = await supabase
-        .from('userinfo')
+        .from('Userinfo')
         .insert([{ id: userId, email, username: nickname, gender }]);
       if (userError) {
         throw new Error(userError.message);
@@ -66,7 +66,10 @@ export const useUserStore = create((set) => ({
       if (error) {
         throw new Error(error.message);
       }
-      set({ userData: data.user || null, loading: false, error: null });
+      set((state) => {
+        if (state.userData?.id === data.user?.id) return state;
+        return { userData: data.user || null, loading: false, error: null };
+      });
     } catch (error) {
       set({ userData: null, loading: false, error: `Check sign-in failed: ${error.message}` });
     }

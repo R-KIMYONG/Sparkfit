@@ -7,8 +7,16 @@ import {
   RiHome2Line
 } from 'react-icons/ri';
 
-export const getSidebarMenus = ({ openModal, navigate, hasNewPlaces, resetPlacesNotification }) => [
-  { icon: RiSearchLine, text: '검색', onClick: openModal },
+export const getSidebarMenus = ({ openModal, navigate, location, hasNewPlaces, resetPlacesNotification }) => [
+  {
+    icon: RiSearchLine,
+    text: '검색',
+    onClick: () => {
+      const currentPath = location.pathname;
+      navigate(`${currentPath}/searchmodal`, { state: { backgroundLocation: location } });
+      openModal();
+    }
+  },
   {
     icon: RiGroupLine,
     text: '모임',
@@ -36,6 +44,7 @@ export const getBottomMenus = ({ navigate, handleSignOut, hasNewContracts }) => 
 export const getMobileMenus = ({
   navigate,
   openModal,
+  location,
   handleSignOut,
   hasNewPlaces,
   hasNewContracts,
@@ -52,7 +61,15 @@ export const getMobileMenus = ({
     },
     hasAlarm: hasNewPlaces
   },
-  { icon: RiSearchLine, text: '검색', onClick: openModal },
+  {
+    icon: RiSearchLine,
+    text: '검색',
+    onClick: () => {
+      const currentPath = location.pathname;
+      navigate(`${currentPath}/searchmodal`, { state: { backgroundLocation: location } });
+      openModal();
+    }
+  },
   {
     icon: RiUser3Line,
     text: '내 계정',
