@@ -10,7 +10,7 @@ import Error from '../common/Error';
 import useUserId from '@/hooks/useUserId';
 import { ApprovalResults, STDeadline, STSection } from '../common/commonStyle';
 import ClubInfo from './ClubInfo';
-import { getDeadlineStatus } from '@/utils/\bdateUtils';
+import { getDeadlineStatus } from '@/utils/dateUtils';
 const ClubList = () => {
   const [activeTab, setActiveTab] = useState('joined');
   const navigate = useNavigate();
