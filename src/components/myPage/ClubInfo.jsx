@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import Loading from '../common/Loading';
 import Error from '../common/Error';
 import { ApprovalResults, STDeadline } from '../common/commonStyle';
-import { getDeadlineStatus } from '@/utils/\bdateUtils';
+import { getDeadlineStatus } from '@/utils/dateUtils';
 const ClubInfo = ({ placeID, status }) => {
   const MyClubLists = async () => {
     const { data: mylist, isError } = await supabase
