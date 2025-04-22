@@ -141,7 +141,7 @@ const ClubList = () => {
                 <li
                   key={index + 1}
                   onClick={() => handleMoveToDetail(id)}
-                  className="cursor-pointer p-4 border border-teal-100 rounded-lg hover:shadow-xl  flex-auto"
+                  className="cursor-pointer p-4 border border-teal-100 rounded-lg hover:shadow-xl flex-auto box-border"
                 >
                   <div className="flex justify-between items-center">
                     <div className="bg-[#efefef] rounded-md px-5 py-2 text-center text-[0.7rem] font-bold">

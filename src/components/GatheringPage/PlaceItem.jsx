@@ -92,7 +92,7 @@ const PlaceItem = ({ place }) => {
           </div>
         </div>
       </div>
-      <svg className="absolute w-[25%] h-[25%] right-[-14%] top-[33%] fill-[#ffffff] rotate-90" viewBox="0 0 100 100">
+      <svg className="absolute w-[25%] h-[25%] right-[-13%] top-[33%] fill-[#ffffff] rotate-90" viewBox="0 0 100 100">
         <polygon points="50,0 100,100 0,100" />
       </svg>
     </div>
