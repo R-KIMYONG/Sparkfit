@@ -54,7 +54,7 @@ const GatheringItem = () => {
   }, [gps, placesLoading, selectedButton, sortPlaces, places, setLoading, sortedPlace]);
   return (
     <div className="flex-1 overflow-auto scrollbar-hide overflow-x-hidden">
-      <div className="flex flex-col gap-4 w-[90%] mx-auto pb-20">
+      <div className="flex flex-col gap-4 w-[86%] mx-auto pb-20">
         {loading ? (
           <Loading />
         ) : (
