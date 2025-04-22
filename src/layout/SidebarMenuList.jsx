@@ -24,7 +24,7 @@ const SidebarMenuList = ({ menus, activeItem, setActiveItem, variant = 'pc' }) =
           {hasAlarm && (
             <RiInformationFill
               className={`absolute text-red-500 ${
-                variant === 'mobile' ? 'top-[-5px] right-[0px]' : 'top-[-25px] right-[-5px]'
+                variant === 'mobile' ? 'top-[-5px] right-[0px]' : 'top-[-5px] right-[0px]'
               } w-[15px] h-[15px]`}
             />
           )}
