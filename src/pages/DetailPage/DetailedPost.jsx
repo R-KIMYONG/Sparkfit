@@ -1,5 +1,5 @@
 import { getPost } from '@/api/postsListApi';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import CreateGroupModal from '../../components/DetailPage/CreateGroupModal';
@@ -24,6 +24,9 @@ import Loading from '@/components/common/Loading';
 import Error from '@/components/common/Error';
 import dayjs from 'dayjs';
 import useUserId from '@/hooks/useUserId';
+import StatusBadge from '@/components/DetailPage/StatusBadge';
+import MemberCardList from '@/components/DetailPage/MemberCardList';
+import { usePlacesCount } from '@/zustand/placescount.store';
 
 const DetailedPost = () => {
   const { id } = useParams();
@@ -31,115 +34,99 @@ const DetailedPost = () => {
   const [openCreateGroupModal, setCreateGroupModal] = useState(false);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [activeTab, setActiveTab] = useState('memberList');
-  const currentUserId = useUserId();
+  const currentUserId = useUserId(); //현재로그인한 사용자의 아이디
   const navigate = useNavigate();
+  const { newPlaces, removeNewPlace } = usePlacesCount();
   const queryClient = useQueryClient();
+  //모임에 대한 정보 가져오기
   const {
     data: posts,
     isPending: isPostsLoading,
-    isError: isPostsError,
-    refetch: postsRefetch
+    isError: isPostsError
   } = useQuery({
     queryKey: ['posts', id],
-    queryFn: () => getPost(id),
-    staleTime: 1000 * 60 * 3,
-    gcTime: 1000 * 60 * 3
+    queryFn: () => getPost(id)
   });
   const postCreatorId = posts?.created_by;
-  const { data: user } = useQuery({
+  //모임장의 정보를 가져오기
+  const userQuery = useQuery({
     queryKey: ['user', postCreatorId],
     queryFn: () => getUser(postCreatorId),
     enabled: !!postCreatorId
   });
 
-  const { data: participantCount = 0, isPending: isCountLoading } = useQuery({
-    queryKey: ['participantCount', id],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('Contracts')
-        .select('place_id', { count: 'exact', head: true })
-        .eq('place_id', id)
-        .eq('status', 'approved');
-
-      if (error) {
-        throw new Error(error.message);
-      }
-      return count || 0;
-    },
-    enabled: !!id,
-    staleTime: 1000 * 60 * 3,
-    gcTime: 1000 * 60 * 3
-  });
-
-  const {
-    data: isJoined,
-    isPending: isJoinedPending,
-    refetch: isJoinedRefetch
-  } = useQuery({
-    queryKey: ['hasJoined', id, currentUserId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('Contracts')
-        .select('*')
-        .eq('place_id', id)
-        .eq('user_id', currentUserId);
-      if (error) throw new Error(error.message);
-
-      const userRejected = data[0].status;
-      const isJoinedBoolean = data.length > 0;
-
-      return { isJoinedBoolean, userRejected };
-    },
-    enabled: !!id && !!currentUserId,
-    staleTime: 1000 * 60 * 3,
-    gcTime: 1000 * 60 * 3
-  });
-  const {
-    data: member,
-    isPending: isMemberLoading,
-    isError: isMemberError,
-    refetch: memberRefetch
-  } = useQuery({
-    queryKey: ['member', id],
-    queryFn: async () => {
-      if (!posts?.id) return [];
-      const { data, error } = await supabase.from('Contracts').select('*').eq('place_id', posts.id);
-      if (error) throw new Error(error.message);
-      return data;
-    },
-    enabled: !!posts?.id,
-    staleTime: 1000 * 60 * 3,
-    gcTime: 1000 * 60 * 3
-  });
-  const {
-    data: userInfos,
-    isPending: isUserInfosLoading,
-    isError: isUserInfosError,
-    refetch: userInfosRefetch
-  } = useQuery({
+  const userInfosQuery = useQuery({
     queryKey: ['userInfos', id],
     queryFn: async () => {
-      const userIds = member.map((m) => m.user_id);
-      const { data, error } = await supabase.from('Userinfo').select('*').in('id', userIds);
-      const userStatus = data.map((user) => {
-        const memberData = member.find((m) => m.user_id === user.id);
-        return {
-          ...user,
-          status: memberData?.status || 'unknown'
-        };
+      const { data: contracts, error: contractsError } = await supabase
+        .from('Contracts')
+        .select('*')
+        .eq('place_id', id);
+
+      if (contractsError) throw new Error(contractsError.message);
+
+      const userIds = contracts.map((m) => m.user_id);
+      if (!userIds.length) return { approvedMembers: [], pendingMembers: [] };
+
+      const { data: users, error: usersError } = await supabase.from('Userinfo').select('*').in('id', userIds);
+
+      if (usersError) throw new Error(usersError.message);
+      const userStatus = users.map((user) => {
+        const match = contracts.find((c) => c.user_id === user.id);
+        return { ...user, status: match?.status || 'unknown' };
       });
 
-      const approvedMembers = userStatus.filter((user) => user.status === 'approved');
-      const pendingMembers = userStatus.filter((user) => user.status === 'pending');
-
-      if (error) throw new Error(error.message);
-      return { approvedMembers, pendingMembers };
+      return {
+        approvedMembers: userStatus.filter((u) => u.status === 'approved'),
+        pendingMembers: userStatus.filter((u) => u.status === 'pending')
+      };
     },
-    enabled: !isMemberLoading && member?.length > 0,
-    staleTime: 1000 * 60 * 3,
-    gcTime: 1000 * 60 * 3
+    enabled: !!id,
+    staleTime: 0,
+    refetchOnWindowFocus: true
   });
-  //가입
+
+  const detailQueries = useQueries({
+    queries: [
+      {
+        queryKey: ['participantCount', id],
+        queryFn: async () => {
+          const { count, error } = await supabase
+            .from('Contracts')
+            .select('place_id', { count: 'exact', head: true })
+            .eq('place_id', id)
+            .eq('status', 'approved');
+          if (error) throw new Error(error.message);
+          return count || 0;
+        },
+        enabled: !!id
+      },
+      {
+        queryKey: ['hasJoined', id, currentUserId],
+        queryFn: async () => {
+          const { data, error } = await supabase
+            .from('Contracts')
+            .select('*')
+            .eq('place_id', id)
+            .eq('user_id', currentUserId);
+          if (error) throw new Error(error.message);
+          return {
+            isJoinedBoolean: data.length > 0,
+            userRejected: data[0]?.status
+          };
+        },
+        enabled: !!id && !!currentUserId
+      }
+    ]
+  });
+
+  const [participantCount = 0, isJoined] = detailQueries.map((q) => q.data ?? null);
+  const [isCountPending, isJoinedPending] = detailQueries.map((q) => q.isPending);
+  const [isCountError, isJoinedError] = detailQueries.map((q) => q.isError);
+  const user = userQuery.data;
+  const userInfos = userInfosQuery.data;
+
+  //회원직접 가입
   const joinMutation = useMutation({
     mutationFn: async () => {
       if (!currentUserId) throw new Error('유저 정보가 없습니다.');
@@ -156,16 +143,12 @@ const DetailedPost = () => {
       }
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['member', posts?.id] });
-      await memberRefetch();
-      await userInfosRefetch();
+      await queryClient.invalidateQueries({ queryKey: ['member', id] });
       await queryClient.invalidateQueries({ queryKey: ['userInfos', id] });
-      await queryClient.refetchQueries({ queryKey: ['userInfos', id] });
       await queryClient.invalidateQueries({ queryKey: ['participantCount', id] });
-      await queryClient.invalidateQueries({ queryKey: ['hasJoined', id] });
+      await queryClient.invalidateQueries({ queryKey: ['hasJoined', id, currentUserId] });
 
       setOpenJoinModal(false);
-      console.log(posts.isReviewed);
       const swalOptions = posts?.isReviewed
         ? {
             icon: 'success',
@@ -215,14 +198,11 @@ const DetailedPost = () => {
         ...prevData,
         isJoinedBoolean: false
       }));
-      await isJoinedRefetch();
-      await queryClient.invalidateQueries({ queryKey: ['member', posts?.id] });
-      await memberRefetch();
-      await userInfosRefetch();
+      await queryClient.invalidateQueries({ queryKey: ['member', id] });
       await queryClient.invalidateQueries({ queryKey: ['userInfos', id] });
-      await queryClient.refetchQueries({ queryKey: ['userInfos', id] });
       await queryClient.invalidateQueries({ queryKey: ['participantCount', id] });
-      await queryClient.invalidateQueries({ queryKey: ['hasJoined', id] });
+      await queryClient.invalidateQueries({ queryKey: ['hasJoined', id, currentUserId] });
+
       Swal.fire({
         icon: 'success',
         title: '취소 완료',
@@ -253,8 +233,9 @@ const DetailedPost = () => {
         title: '삭제 완료',
         text: '모임삭제 했습니다.',
         confirmButtonText: '확인'
-      }).then(() => {
-        queryClient.invalidateQueries({ queryKey: ['places'] });
+      }).then(async () => {
+        await queryClient.invalidateQueries({ queryKey: ['places'] });
+        await queryClient.refetchQueries({ queryKey: ['places'] });
         navigate('/main');
       });
     },
@@ -268,7 +249,7 @@ const DetailedPost = () => {
       });
     }
   });
-
+  //멤버의 승인상태 업데이트하는 뮤테이션
   const memberActionMutation = useMutation({
     mutationFn: async ({ userId, action }) => {
       if (!userId) throw new Error('유저 정보가 없습니다.');
@@ -294,14 +275,11 @@ const DetailedPost = () => {
       }
     },
     onSuccess: async (_, variables) => {
-      // 필요한 모든 쿼리 무효화 및 데이터 새로고침
-      await queryClient.invalidateQueries({ queryKey: ['member', posts?.id] });
-      await memberRefetch();
-      await isJoinedRefetch();
-      await postsRefetch();
+      await queryClient.invalidateQueries({ queryKey: ['member', id] });
       await queryClient.invalidateQueries({ queryKey: ['userInfos', id] });
       await queryClient.refetchQueries({ queryKey: ['userInfos', id] });
       await queryClient.invalidateQueries({ queryKey: ['participantCount', id] });
+      await queryClient.invalidateQueries({ queryKey: ['hasJoined', id, currentUserId] });
 
       // 액션에 따른 다른 메시지 표시
       const actionText = variables.action === 'approved' ? '승인' : '거절';
@@ -325,7 +303,7 @@ const DetailedPost = () => {
       });
     }
   });
-  // 멤버 승인 요청 리스트에서 승인 버튼 클릭 시
+  // 모임장이 멤버 가입 승인/거절 하기
   const handleMemberAction = useCallback(
     (userId, action) => {
       memberActionMutation.mutate({ userId, action });
@@ -348,7 +326,7 @@ const DetailedPost = () => {
       }
     });
   }, [deletePost]);
-
+  //멤버가 모임에 가입 또는 취소하기
   const handleJoinOrLeave = useCallback(() => {
     if (currentUserId === postCreatorId) {
       Swal.fire({
@@ -380,14 +358,8 @@ const DetailedPost = () => {
       Swal.close();
     }
   }, [isJoinedPending]);
-  const isLoading =
-    isPostsLoading &&
-    isMemberLoading &&
-    isUserInfosLoading &&
-    isCountLoading &&
-    isJoinedPending &&
-    currentUserId === null;
-  const isError = isPostsError || isMemberError || isUserInfosError;
+  const isPending = isPostsLoading || isCountPending;
+  const isError = isPostsError || isJoinedError || isCountError;
   const today = dayjs();
   const daysLeft = useMemo(() => {
     if (!posts?.deadline) return '정보 없음';
@@ -424,7 +396,54 @@ const DetailedPost = () => {
     [posts, daysLeft, participantCount, userInfos]
   );
 
-  if (isPostsLoading) {
+  useEffect(() => {
+    const channel = supabase
+      .channel('contracts-events')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE 전부포함해버리기
+          schema: 'public',
+          table: 'Contracts',
+          filter: `place_id=eq.${id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['member', id] });
+          queryClient.invalidateQueries({ queryKey: ['userInfos', id] });
+          queryClient.invalidateQueries({ queryKey: ['participantCount', id] });
+          queryClient.invalidateQueries({ queryKey: ['hasJoined', id, currentUserId] });
+          queryClient.invalidateQueries({ queryKey: ['participantCount', id] });
+          queryClient.invalidateQueries({ queryKey: ['user', postCreatorId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+  const markPlaceAsViewed = async (placeId) => {
+    if (!currentUserId) return;
+
+    const { error } = await supabase
+      .from('Viewed_places')
+      .upsert({ user_id: currentUserId, viewed_id: placeId }, { onConflict: ['user_id'] });
+
+    if (error) {
+      console.error('Viewed_places 업서트 오류:', error.message);
+      return;
+    }
+
+    removeNewPlace(placeId);
+  };
+
+  useEffect(() => {
+    if (id && currentUserId) {
+      markPlaceAsViewed(id);
+    }
+  }, [id, currentUserId]);
+
+  if (isPending) {
     return <Loading />;
   }
   if (isError) {
@@ -457,10 +476,8 @@ const DetailedPost = () => {
             <p className="text-red-500">모집 완료</p>
           ) : (
             <div className="flex items-center gap-2">
-              <p>{isJoined?.userRejected === 'rejected' ? '❗️관리자로부터 가입거절됬습니다.' : ''}</p>
-              <p className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                {posts?.isReviewed && isJoined?.isJoinedBoolean && '⏳ 승인 대기중'}
-              </p>
+              <StatusBadge status={isJoined?.userRejected} />
+
               <button
                 onClick={handleJoinOrLeave}
                 className={`border border-none rounded-md text-white font-bold px-[1rem] py-[0.5rem] text-xs shadow-xl shadow-[#C9E5FF] ${
@@ -492,6 +509,7 @@ const DetailedPost = () => {
             <p className="text-xs line-clamp-3 break-words overflow-hidden">{user?.introduce}</p>
           </div>
         </div>
+        {/*모임정보 뱃지*/}
         <div className="flex flex-wrap gap-3 mt-4">
           {postDetails.map((detail, index) =>
             detail.label !== '모임설명' ? (
@@ -514,129 +532,55 @@ const DetailedPost = () => {
               <p className="line-clamp-3 break-words overflow-hidden">{detail.value}</p>
             </div>
           ))}
-
+        {/* 모임 탭 */}
         <div className="flex mb-5 box-border w-full mt-4">
           <button
-            className={`px-5 py-2 w-1/2 text-sm font-bold transition-all border-b-2 ${
+            className={`flex items-center justify-center gap-1 px-5 py-2 w-1/2 text-sm font-bold transition-all border-b-2 ${
               activeTab === 'memberList'
                 ? 'border-blue-500 text-blue-500 bg-customBackground rounded-t-xl'
                 : 'text-gray-400'
             }`}
             onClick={() => setActiveTab('memberList')}
           >
-            <AiFillThunderbolt className="inline-block mr-1" />
-            가입된 멤버
+            <AiFillThunderbolt />
+            <p>가입된 멤버</p>
           </button>
           {currentUserId === postCreatorId ? (
             <button
-              className={`px-5 py-2 w-1/2 text-sm font-bold transition-all border-b-2 ${
+              className={`flex items-center justify-center gap-1 px-5 py-2 w-1/2 text-sm font-bold transition-all border-b-2 ${
                 activeTab === 'pendingList'
                   ? ' border-blue-500 text-blue-500 bg-customBackground rounded-t-xl'
                   : 'text-gray-400'
               }`}
               onClick={() => setActiveTab('pendingList')}
             >
-              <AiOutlineThunderbolt className="inline-block mr-1" />
-              멤버승인 요청
+              <AiOutlineThunderbolt />
+              <p>멤버승인 요청</p>
             </button>
           ) : (
             ''
           )}
         </div>
 
-        <ul className="grid grid-cols-[repeat(auto-fit,_minmax(15rem,_1fr))] gap-3">
-          {userInfos && activeTab === 'memberList' && userInfos?.approvedMembers.length > 0 ? (
-            userInfos?.approvedMembers?.map((info) => {
-              const defaultAvatar = info.gender === 'male' ? '/Ellipse1.png' : '/Ellipse2.png';
-              const avatarSrc = info.profile_image || defaultAvatar;
-              return (
-                <li
-                  key={info.id}
-                  className="border-b py-2 bg-[#EBF7FF] p-4 rounded-md flex flex-col min-w-[20%] max-w-full"
-                >
-                  <div className="flex justify-between items-center gap-3">
-                    <div className="flex items-center gap-3">
-                      <img src={avatarSrc} alt="프로필" className="w-10 h-10 rounded-full" />
-                      <div>
-                        <p className="text-sm font-semibold">{info.username}</p>
-                        <p className="text-xs text-gray-500">{info.email}</p>
-                        <p className="text-xs text-gray-500">성별 : {info.gender === 'male' ? '남' : '여'}</p>
-                      </div>
-                    </div>
-
-                    {currentUserId === postCreatorId && (
-                      <button
-                        onClick={() => handleMemberAction(info.id, 'rejected')}
-                        className="text-xs px-3 py-1.5 border-none bg-btn-red rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-red-400 transition-all"
-                      >
-                        탈퇴
-                      </button>
-                    )}
-                  </div>
-                  <div className="mt-2 min-h-[4rem]">
-                    <p className="text-xs">자기 소개</p>
-                    <p className="text-xs break-all whitespace-pre-line w-full">
-                      {info.introduce || '자기 소개글이 없습니다.'}
-                    </p>
-                  </div>
-                </li>
-              );
-            })
-          ) : activeTab === 'memberList' ? (
-            <div className="w-full">
-              <p className="text-center text-gray-500 py-4">가입된 멤버가 없습니다.</p>
-            </div>
-          ) : null}
-        </ul>
+        {/* 가입된 멤버 리스트 */}
+        {activeTab === 'memberList' && (
+          <MemberCardList
+            members={userInfos?.approvedMembers}
+            type="approved"
+            currentUserId={currentUserId}
+            postCreatorId={postCreatorId}
+            onAction={handleMemberAction}
+          />
+        )}
+        {/* 가입 승인요청 멤버 리스트 */}
         {activeTab === 'pendingList' && (
-          <>
-            {userInfos?.pendingMembers?.length > 0 ? (
-              <ul className="grid grid-cols-[repeat(auto-fit,_minmax(15rem,_1fr))] gap-3">
-                {userInfos.pendingMembers.map((info) => {
-                  const defaultAvatar = info.gender === 'male' ? '/Ellipse1.png' : '/Ellipse2.png';
-                  const avatarSrc = info.profile_image || defaultAvatar;
-                  return (
-                    <li
-                      key={info.id}
-                      className="border-b py-2 bg-[#EBF7FF] p-4 rounded-md flex flex-col min-w-[25%] max-w-full"
-                    >
-                      <div className="flex items-center gap-3">
-                        <img src={avatarSrc} alt="프로필" className="w-10 h-10 rounded-full" />
-                        <div>
-                          <p className="text-sm font-semibold">{info.username}</p>
-                          <p className="text-xs text-gray-500">{info.email}</p>
-                          <p className="text-xs text-gray-500">성별 : {info.gender === 'male' ? '남' : '여'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center mt-2">
-                        <button
-                          onClick={() => handleMemberAction(info.id, 'approved')}
-                          className="text-xs px-3 py-1.5 border-none bg-btn-blue rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-blue-400 transition-all"
-                        >
-                          승인
-                        </button>
-                        <button
-                          onClick={() => handleMemberAction(info.id, 'rejected')}
-                          className="text-xs px-3 py-1.5 border-none bg-btn-red rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-red-400 transition-all"
-                        >
-                          거절
-                        </button>
-                      </div>
-
-                      <div className="mt-2 min-h-[4rem]">
-                        <p className="text-xs">자기 소개</p>
-                        <p className="text-xs break-all whitespace-pre-line w-full">
-                          {info.introduce || '자기 소개글이 없습니다.'}
-                        </p>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="text-center text-gray-500 py-4">승인요청 없습니다.</p>
-            )}
-          </>
+          <MemberCardList
+            members={userInfos?.pendingMembers}
+            type="pending"
+            currentUserId={currentUserId}
+            postCreatorId={postCreatorId}
+            onAction={handleMemberAction}
+          />
         )}
       </div>
 

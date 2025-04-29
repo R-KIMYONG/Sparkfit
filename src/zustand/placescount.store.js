@@ -1,6 +1,14 @@
 import supabase from '@/supabase/supabaseClient';
+import dayjs from 'dayjs';
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
+
+const getCurrentUserId = async () => {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) return null;
+  return data.user.id;
+};
+
 const fetchContractsCount = async (userId, set, get) => {
   // 사용자가 만든 장소를 가져옵니다.
   const { data: placesData, error: placesError } = await supabase.from('Places').select('id').eq('created_by', userId);
@@ -24,7 +32,9 @@ const fetchContractsCount = async (userId, set, get) => {
   if (contractsError) {
     throw new Error(contractsError.message);
   }
-  if (count > get().contractsCount) {
+  const prevCount = get().contractsCount;
+  set({ contractsCount: count });
+  if (prevCount !== 0 && count > prevCount) {
     set({ hasNewContracts: true });
   }
   return count; // 사용자가 만든 모임에 가입된 총 인원 수를 반환
@@ -49,6 +59,20 @@ export const usePlacesCount = create(
       error: null,
       hasNewContracts: false,
       hasNewPlaces: false,
+      newPlaces: [],
+      removeNewPlace: (id) =>
+        set((state) => {
+          const updated = state.newPlaces.filter((placeId) => placeId !== id);
+          return {
+            newPlaces: updated,
+            hasNewPlaces: updated.length > 0
+          };
+        }),
+      removePlaceFromNew: (placeId) =>
+        set((state) => ({
+          newPlaces: state.newPlaces.filter((id) => id !== placeId),
+          hasNewPlaces: state.newPlaces.filter((id) => id !== placeId).length > 0
+        })),
       startFetching: (userId) => {
         const fetchData = async () => {
           try {
@@ -65,25 +89,15 @@ export const usePlacesCount = create(
         const contractsInsertChannel = supabase
           .channel('contracts-insert-channel')
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Contracts' }, async (payload) => {
-
             if (payload.new.status === 'approved' || payload.new.status === 'pending') {
               try {
-                const { data: ownerId, error: ownerIdError } = await supabase
+                const { data, error } = await supabase
                   .from('Places')
-                  .select('*')
+                  .select('created_by')
                   .eq('id', payload.new.place_id);
 
-                const { data, error } = await supabase.auth.getUser();
-                if (error || !data?.user) {
-                  console.error('로그인된 사용자 정보를 가져올 수 없습니다.');
-                  return;
-                }
-
-                const userId = data.user.id; //현재 로그인중인 사용자가 모임장인지 체크
-                if (ownerIdError) {
-                  throw new Error(ownerIdError.message);
-                }
-                if (userId === ownerId[0].created_by) {
+                if (error) throw new Error(error.message);
+                if (userId && userId === data[0].created_by) {
                   set({ hasNewContracts: true });
                 }
               } catch (error) {
@@ -92,18 +106,12 @@ export const usePlacesCount = create(
             }
           })
           .subscribe();
-
+        // 'Contracts' 테이블에서 멤버가 가입요청 변경 있는지 확인하는 채널
         const contractsUpdateChannel = supabase
           .channel('contracts-update-channel')
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'Contracts' }, async (payload) => {
             if (payload.new.status === 'approved' || payload.new.status === 'rejected') {
               try {
-                const { data, error } = await supabase.auth.getUser();
-                if (error || !data?.user) {
-                  console.error('로그인된 사용자 정보를 가져올 수 없습니다.');
-                  return;
-                }
-                const userId = data.user.id; //현재 로그인중인 사용자가 모임장인지 체크
                 if (userId === payload.new.user_id) {
                   set({ hasNewContracts: true });
                 }
@@ -117,11 +125,48 @@ export const usePlacesCount = create(
         // 'Places' 테이블에서 새로운 장소가 등록되었는지 확인하는 채널
         const placesUpdateChannel = supabase
           .channel('places-update-channel')
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Places' }, async () => {
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Places' }, async (payload) => {
             // 새로운 장소가 추가될 때마다 사용자가 만든 장소의 갯수를 갱신합니다.
             try {
+              const place = payload.new;
               const newPlacesCount = await fetchPlacesCount(userId);
-              set({ placesCount: newPlacesCount, hasNewPlaces: true });
+
+              if (place.created_by === userId) {
+                set(() => ({ placesCount: newPlacesCount }));
+                return;
+              }
+
+              const isWithin3Days = dayjs().diff(dayjs(place.created_at), 'day') < 3;
+              const isBeforeDeadline = dayjs(place.deadline).isAfter(dayjs());
+
+              if (isWithin3Days && isBeforeDeadline) {
+                const { data: viewedData } = await supabase
+                  .from('Viewed_places')
+                  .select('id')
+                  .eq('user_id', userId)
+                  .eq('viewed_id', place.id)
+                  .maybeSingle();
+
+                const alreadyViewed = !!viewedData;
+
+                if (!alreadyViewed) {
+                  set((state) => {
+                    const alreadyExists = state.newPlaces.includes(place.id);
+                    const updatedNewPlaces = alreadyExists ? state.newPlaces : [...state.newPlaces, place.id];
+
+                    return {
+                      placesCount: newPlacesCount,
+                      hasNewPlaces: updatedNewPlaces.length > 0,
+                      newPlaces: updatedNewPlaces
+                    };
+                  });
+                }
+              } else {
+                // 3일 초과이거나 마감된 경우: 알림에 추가하지 않음, 그래도 count는 갱신
+                set(() => ({
+                  placesCount: newPlacesCount
+                }));
+              }
             } catch (error) {
               set({ error: error.message });
             }
@@ -138,7 +183,7 @@ export const usePlacesCount = create(
         if (state.placesUpdateChannel) {
           supabase.removeChannel(state.placesUpdateChannel);
         }
-        set({ contractsUpdateChannel: null, placesUpdateChannel: null, hasNewContracts: false, hasNewPlaces: false });
+        set({ contractsUpdateChannel: null, placesUpdateChannel: null, hasNewContracts: false });
       },
       resetContractsNotification: () => {
         set({ hasNewContracts: false });
@@ -149,19 +194,11 @@ export const usePlacesCount = create(
     }),
     {
       name: 'places-count-storage',
-      storage: {
-        getItem: (name) => {
-          const value = sessionStorage.getItem(name);
-          return value ? JSON.parse(value) : null;
-        },
-        setItem: (name, value) => {
-          sessionStorage.setItem(name, JSON.stringify(value));
-        },
-        removeItem: (name) => {
-          sessionStorage.removeItem(name);
-        }
-      }
-      // getStorage: () => sessionStorage
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        newPlaces: state.newPlaces,
+        hasNewPlaces: state.hasNewPlaces
+      })
     }
   )
 );

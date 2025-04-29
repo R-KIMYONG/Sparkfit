@@ -15,7 +15,7 @@ const SidebarMenuList = ({ menus, activeItem, setActiveItem, variant = 'pc' }) =
             setActiveItem(text);
             onClick();
           }}
-          className={`cursor-pointer relative text-center flex flex-col items-center ${
+          className={`cursor-pointer relative text-center flex flex-col items-center transition-all ${
             activeItem === text ? 'text-[#82C0F9]' : ''
           }`}
         >
@@ -24,7 +24,7 @@ const SidebarMenuList = ({ menus, activeItem, setActiveItem, variant = 'pc' }) =
           {hasAlarm && (
             <RiInformationFill
               className={`absolute text-red-500 ${
-                variant === 'mobile' ? 'top-[-5px] right-[0px]' : 'top-[-5px] right-[0px]'
+                variant === 'mobile' ? 'top-[-5px] right-[-5px]' : 'top-[-5px] right-[-5px]'
               } w-[15px] h-[15px]`}
             />
           )}

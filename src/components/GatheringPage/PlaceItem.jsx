@@ -2,7 +2,7 @@ import supabase from '@/supabase/supabaseClient';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const PlaceItem = ({ place }) => {
+const PlaceItem = ({ place, showBadge }) => {
   const navigate = useNavigate();
   const [participantCount, setParticipantCount] = useState(0);
   const [host, setHost] = useState(null);
@@ -39,16 +39,21 @@ const PlaceItem = ({ place }) => {
       fetchHostInfo();
     }
   }, [place.created_by]);
+
   return (
     <div key={place.id} className="flex bg-[#ffffff] p-4 shadow-lg rounded-xl relative w-full">
       {/* 모임 설명 */}
       <div className="flex w-full">
         <div className="w-full flex flex-col gap-3">
           {/* 모임 제목/해시태그/버튼 */}
-
           <div className="w-full">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg mb-3 font-semibold">{place.gather_name}</h2>
+              <div className="flex items-center flex-1 mb-3 gap-2">
+                <h2 className="text-lg font-semibold">{place.gather_name}</h2>
+                {showBadge && (
+                  <span className="text-red-500 text-xs font-bold bg-red-100 px-2.5 py-0.5 rounded-full">New</span>
+                )}
+              </div>
               <div>
                 <button
                   onClick={() => navigate(`/detail/${place.id}`)}

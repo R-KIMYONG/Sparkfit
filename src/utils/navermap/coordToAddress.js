@@ -40,7 +40,15 @@ function searchCoordinateToAddress(infoWindow, map, latlng, setSelectButtonDom, 
       const container = SetInfoWindowContent('address', '', htmlAddresses, infoWindow, null, null, marker, user);
 
       infoWindow.setContent(container);
-
+      // const selectCoordButton = infoWindow.getContentElement().querySelector('#selectCoord');
+      // if (selectCoordButton) {
+      //   selectCoordButton.style.pointerEvents = 'auto';
+      //   selectCoordButton.onclick = (e) => {
+      //     e.preventDefault();
+      //     e.stopPropagation();
+      //     if (window.openCreateGroupModal) window.openCreateGroupModal();
+      //   };
+      // }
       infoWindow.setOptions({
         anchorSkew: false,
         borderColor: '#cecdc7',

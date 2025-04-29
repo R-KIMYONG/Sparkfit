@@ -3,9 +3,9 @@ import Swal from 'sweetalert2';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import supabase from '@/supabase/supabaseClient';
 import { exercises } from '@/components/DetailPage/exercises';
-
-import CreatableSelect from 'react-select/creatable';
-import { handleInputChangeWithLimit } from '@/utils/selectFn/handleInputChangeWithLimit';
+import { createHandleSelectSportsInputChange } from '@/utils/selectFn/handleSelectSportsInputChange';
+import { RenderField } from '@/components/common/RenderField';
+import { format } from 'date-fns';
 const EditPostModal = ({ close, post, postId, participantCount }) => {
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -48,6 +48,11 @@ const EditPostModal = ({ close, post, postId, participantCount }) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts', postId] });
+      //모임 상세 정보를 수정했기 때문에, 상세 페이지 상단의 제목·설명 등 최신 정보 반영 필요
+      queryClient.invalidateQueries({ queryKey: ['participantCount', postId] });
+      //이거는 모집인원수가 변경됬을수 있으니 무효화한번해주는게 좋음
+      queryClient.invalidateQueries({ queryKey: ['userInfos', postId] });
+      //가입 조건이 변경될 수 있으니 멤버 리스트 표시 방식이 달라질수있음
       Swal.fire({
         icon: 'success',
         title: '수정 완료',
@@ -91,10 +96,7 @@ const EditPostModal = ({ close, post, postId, participantCount }) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectSportsInputChange = (value) => {
-    const newValue = handleInputChangeWithLimit(value, 10);
-    setSelectedInputValue(newValue);
-  };
+  const handleSelectSportsInputChange = createHandleSelectSportsInputChange(setSelectedInputValue);
 
   const handleSelectChange = useCallback((selected) => {
     setFormData((prev) => {
@@ -126,57 +128,23 @@ const EditPostModal = ({ close, post, postId, participantCount }) => {
       <div className={`bg-white p-6 rounded-lg w-[90%] xl:w-[35%] lg:w-1/3 md:w-1/3 sm:w-2/4 sm:ml-[6rem]`}>
         <h2 className="text-xl font-semibold mb-4">모임 정보 수정</h2>
         <form onSubmit={handleUpdate}>
-          {postDetails.map(({ name, placeholder, type, options, min, maxLength }) => (
-            <div key={name} className="mb-4">
-              {type === 'select' ? (
-                <CreatableSelect
-                  options={options}
-                  placeholder={placeholder}
-                  value={
-                    formData.sportsName
-                      ? options.find((option) => option.value === formData.sportsName) || {
-                          label: formData.sportsName,
-                          value: formData.sportsName
-                        }
-                      : null
-                  }
-                  onChange={handleSelectChange}
-                  className="text-xs"
-                  formatCreateLabel={(inputValue) => `"${inputValue}" 생성 (최대 10자)`}
-                  isClearable
-                  inputValue={selectedInputValue}
-                  onInputChange={handleSelectSportsInputChange}
-                />
-              ) : type === 'textarea' ? (
-                <div className="relative w-full h-full">
-                  <textarea
-                    name={name}
-                    className="w-full border px-3 py-2 rounded-md text-xs"
-                    value={formData[name]}
-                    style={{ resize: 'none' }}
-                    onChange={handleInputChange}
-                    autoComplete="off"
-                    placeholder={placeholder + ' (최대 200자)'}
-                    rows={4}
-                    maxLength={maxLength}
-                  />
-                  <span className="text-[8px] text-gray-300 absolute right-3 bottom-2">
-                    {formData[name].length}/200
-                  </span>
-                </div>
-              ) : (
-                <input
-                  name={name}
-                  type={type}
-                  className="w-full border px-3 py-2 rounded-md text-xs"
-                  value={formData[name]}
-                  onChange={handleInputChange}
-                  autoComplete="off"
-                  min={min}
-                  placeholder={placeholder}
-                  maxLength={maxLength}
-                />
-              )}
+          {postDetails.map((field) => (
+            <div key={field.name} className="mb-4">
+              <RenderField
+                field={field}
+                formData={formData}
+                handleInputChange={handleInputChange}
+                handleSelectChange={handleSelectChange}
+                handleSelectSportsInputChange={handleSelectSportsInputChange}
+                handleDateChange={(date) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    deadline: date ? format(date, 'yyyy-MM-dd') : ''
+                  }));
+                }}
+                selectedInputValue={selectedInputValue}
+                from="edit"
+              />
             </div>
           ))}
           <div className="flex justify-between">

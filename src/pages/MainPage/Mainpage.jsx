@@ -1,5 +1,4 @@
 import CreateGroupModal from '@/components/DetailPage/CreateGroupModal';
-
 import SetInfoWindowContent from '@/components/navermap/SetInfoWindow';
 import usePlaces from '@/hooks/usePlaces';
 import checkForMarkersRendering from '@/utils/navermap/checkForMarkersRendering';
@@ -8,12 +7,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useMap from '../../hooks/useMap';
+import useCreatedPlaceModal from '@/zustand/createdPlaceModal.store';
 
 function Mainpage({ user = null, contracts = [] }) {
   const navigate = useNavigate();
   const searchInputRef = useRef();
   const searchButtonRef = useRef();
-  const [openCreateGroupModal, setCreateGroupModal] = useState(false);
+  // const [openCreateGroupModal, setCreateGroupModal] = useState(false);
+  const { openCreateGroupModal, setCreateGroupModal } = useCreatedPlaceModal();
   const { naverMap, basicMarker, infoWindow, makeGatherButtonDom, selectedGeoData } = useMap();
   const { places } = usePlaces();
   const queryClient = useQueryClient();
@@ -23,7 +24,8 @@ function Mainpage({ user = null, contracts = [] }) {
   const allMarkersRef = useRef(null);
 
   const handleModalClose = async () => {
-    setCreateGroupModal((prev) => !prev);
+    // setCreateGroupModal((prev) => !prev);
+    setCreateGroupModal(false);
     await queryClient.invalidateQueries({ queryKey: ['places'] });
     if (infoWindow) infoWindow.close();
     setTimeout(() => {
@@ -123,15 +125,23 @@ function Mainpage({ user = null, contracts = [] }) {
   }, [places, naverMap, basicMarker, navigate, user, contracts]);
 
   // 모임만들기 버튼 클릭시 동작 여기에
-  useEffect(() => {
-    const handleSelectButtonDom = () => setCreateGroupModal((prev) => !prev);
+  // useEffect(() => {
+  //   const handleSelectButtonDom = (e) => {
+  //     e.preventDefault();
+  //     e.stopPropagation();
+  //     setCreateGroupModal((prev) => !prev);
+  //     console.log(1)
+  //   };
+  //   if (makeGatherButtonDom) {
+  //     makeGatherButtonDom.addEventListener('click', handleSelectButtonDom);
+  //   }
 
-    if (makeGatherButtonDom) makeGatherButtonDom.addEventListener('click', handleSelectButtonDom);
-
-    return () => {
-      if (makeGatherButtonDom) makeGatherButtonDom.removeEventListener('click', handleSelectButtonDom);
-    };
-  }, [makeGatherButtonDom, selectedGeoData]);
+  //   return () => {
+  //     if (makeGatherButtonDom) {
+  //       makeGatherButtonDom.removeEventListener('click', handleSelectButtonDom);
+  //     }
+  //   };
+  // }, [makeGatherButtonDom, selectedGeoData]);
 
   return (
     <>

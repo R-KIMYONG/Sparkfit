@@ -1,4 +1,7 @@
+import useCreatedPlaceModal from '../../zustand/createdPlaceModal.store';
+
 const CoordInfoWindow = ({ htmlAddresses, infoWindow, marker }) => {
+  const { openCreateGroupModal, setCreateGroupModal } = useCreatedPlaceModal();
   const handleCloseButton = () => {
     infoWindow.close();
     marker.setMap(null);
@@ -9,7 +12,15 @@ const CoordInfoWindow = ({ htmlAddresses, infoWindow, marker }) => {
       <div className="flex flex-row justify-between">
         <h4>선택된 주소</h4>
         <div className="flex flex-row gap-1">
-          <button id="selectCoord" className="bg-btn-blue hover:bg-blue-400 text-white font-bold py-0.5 px-2 rounded">
+          <button
+            onClick={() => {
+              if (!openCreateGroupModal) {
+                setCreateGroupModal(true);
+              }
+            }}
+            id="selectCoord"
+            className="bg-btn-blue hover:bg-blue-400 text-white font-bold py-0.5 px-2 rounded z-99"
+          >
             모임만들기
           </button>
           <button

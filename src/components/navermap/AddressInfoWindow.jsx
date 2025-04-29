@@ -1,14 +1,25 @@
+import useCreatedPlaceModal from '@/zustand/createdPlaceModal.store';
+
 const AddressInfoWindow = ({ searchedValue, htmlAddresses, infoWindow, marker }) => {
+  const { openCreateGroupModal, setCreateGroupModal } = useCreatedPlaceModal();
   const handleCloseButton = () => {
     marker.setMap(null);
     infoWindow.close();
   };
   return (
     <>
-      <div className="flex flex-row justify-between">
+      <div className="flex flex-row justify-between z-99">
         <h4>검색 주소 : {searchedValue}</h4>
         <div className="flex flex-row gap-1">
-          <button id="selectCoord" className="bg-btn-blue hover:bg-blue-400 text-white font-bold py-0.5 px-2 rounded">
+          <button
+            onClick={() => {
+              if (!openCreateGroupModal) {
+                setCreateGroupModal(true);
+              }
+            }}
+            id="selectCoord"
+            className="bg-btn-blue hover:bg-blue-400 text-white font-bold py-0.5 px-2 rounded"
+          >
             모임만들기
           </button>
           <button
