@@ -4,6 +4,11 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    allowedHosts: ['d2fd-58-239-97-34.ngrok-free.app'],
+    host: true,
+    port: 5173
+  },
   plugins: [
     react(),
     VitePWA({

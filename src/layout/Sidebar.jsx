@@ -1,7 +1,7 @@
 import { useUserStore } from '@/zustand/auth.store';
 import { usePlacesCount } from '@/zustand/placescount.store';
 import { useEffect, useState } from 'react';
-import { RiArrowGoBackLine, RiInformationFill } from 'react-icons/ri';
+import { RiArrowGoBackLine } from 'react-icons/ri';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import logo from './../assets/logo.png';
@@ -16,16 +16,8 @@ export default function Sidebar() {
   const [activeItem, setActiveItem] = useState('홈');
   const signOut = useUserStore((state) => state.signOut);
   const { openModal } = useSearchStore();
-  const {
-    placesCount,
-    startFetching,
-    stopFetching,
-    hasNewContracts,
-    hasNewPlaces,
-    resetContractsNotification,
-    resetPlacesNotification
-  } = usePlacesCount((state) => state);
-
+  const { placesCount, startFetching, stopFetching, hasNewContracts, hasNewPlaces, resetContractsNotification } =
+    usePlacesCount((state) => state);
   const userId = useUserId();
   useEffect(() => {
     if (userId) {
@@ -35,7 +27,7 @@ export default function Sidebar() {
       stopFetching();
     };
   }, [startFetching, stopFetching, userId]);
-
+  console.log(hasNewPlaces)
   const handleSignOut = async () => {
     try {
       const result = await Swal.fire({
@@ -73,8 +65,7 @@ export default function Sidebar() {
     navigate,
     location,
     placesCount,
-    hasNewPlaces,
-    resetPlacesNotification
+    hasNewPlaces
   });
   const bottomMenus = getBottomMenus({
     navigate,
@@ -89,7 +80,6 @@ export default function Sidebar() {
     placesCount,
     hasNewPlaces,
     hasNewContracts,
-    resetPlacesNotification,
     resetContractsNotification
   });
   return (

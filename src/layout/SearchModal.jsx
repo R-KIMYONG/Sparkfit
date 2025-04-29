@@ -103,7 +103,7 @@ const SearchModal = () => {
         className="modal inset-0 items-center z-50 "
         overlayClassName="overlay fixed inset-0 bg-black bg-opacity-50 z-40"
       >
-        <div className="bg-white p-6 rounded-lg sm:w-2/3 absolute min-[320px]:translate-x-[-50%] min-[320px]:translate-y-[-50%] min-[320px]:top-[50%] min-[320px]:left-[50%] min-[320px]:w-[90%]">
+        <div className="bg-white p-3 rounded-lg sm:w-2/3 absolute min-[320px]:translate-x-[-50%] min-[320px]:translate-y-[-50%] min-[320px]:top-[50%] min-[320px]:left-[50%] min-[320px]:w-[90%]">
           <div className="flex justify-between items-center mb-4">
             <h2 className="sm:text-2xl font-bold text-xl flex items-center gap-3">
               <RiSearchLine /> SparkFit 검색{' '}
@@ -114,21 +114,23 @@ const SearchModal = () => {
             </button>
           </div>
           <form onSubmit={searchPlace} className="space-y-2">
-            <div className="flex gap-2 sm:gap-4">
+            <div className="w-full flex justify-between items-center gap-2 sm:gap-4">
               <input
                 type="text"
                 ref={searchInputRef}
                 placeholder="지역 또는 스포츠명을 입력하세요"
-                className="flex-1 px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-customLoginButton shadow-sm transition-all"
+                className="flex-1 px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-customLoginButton shadow-sm transition-all box-content"
                 maxLength={30}
                 autoFocus
               />
-              <button
-                type="submit"
-                className="bg-customLoginButton text-white px-4 py-2 rounded-md font-semibold hover:bg-opacity-90 transition-all shadow-sm"
-              >
-                검색
-              </button>
+              <div>
+                <button
+                  type="submit"
+                  className="bg-customLoginButton text-white px-2 py-2 box-border rounded-md font-semibold hover:bg-opacity-90 transition-all shadow-sm"
+                >
+                  검색
+                </button>
+              </div>
             </div>
             <span className="text-xs text-gray-500 block text-right">
               결과 : {searchResults.length > 99 ? '99+' : searchResults.length}
@@ -141,7 +143,7 @@ const SearchModal = () => {
                   <li key={item.id} className="px-2 py-4 box-border shadow-xl rounded-md">
                     <p className=" font-bold sm:text-sm ">{item.gather_name}</p>
                     <div className="flex justify-between items-center">
-                      <div className="flex flex-col gap-2 mt-2 flex-wrap">
+                      <div className="flex flex-col gap-2 mt-2 flex-wrap flex-1">
                         <p className="text-gray-700 sm:text-sm">
                           {item.texts.length > 20 ? `${item.texts.slice(0, 20)}...` : item.texts}
                         </p>

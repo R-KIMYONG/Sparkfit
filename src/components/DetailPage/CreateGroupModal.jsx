@@ -8,10 +8,11 @@ import Swal from 'sweetalert2';
 import { exercises } from './exercises';
 import Loading from '../common/Loading';
 import Error from '../common/Error';
-import CreatableSelect from 'react-select/creatable';
-import { handleInputChangeWithLimit } from '@/utils/selectFn/handleInputChangeWithLimit';
-import { Switch } from '@headlessui/react';
+import { format } from 'date-fns';
 import { useUserStore } from '@/zustand/auth.store';
+import dayjs from 'dayjs';
+import { RenderField } from '../common/RenderField';
+import { createHandleSelectSportsInputChange } from '@/utils/selectFn/handleSelectSportsInputChange';
 const CreateGroupModal = ({ close }) => {
   const [selectedInputValue, setSelectedInputValue] = useState('');
   const modalRef = useRef(null);
@@ -124,14 +125,10 @@ const CreateGroupModal = ({ close }) => {
     });
   };
 
-  const handleSelectSportsInputChange = (value) => {
-    const newValue = handleInputChangeWithLimit(value, 10);
-    setSelectedInputValue(newValue);
-  };
+  const handleSelectSportsInputChange = createHandleSelectSportsInputChange(setSelectedInputValue);
 
   useOutsideClick(modalRef, handleClose);
 
-  const todayDate = () => new Date().toISOString().split('T')[0];
   const inputFields = [
     { id: 'groupName', name: 'groupName', placeholder: '모임명', type: 'text', maxLength: 20 },
     {
@@ -142,7 +139,7 @@ const CreateGroupModal = ({ close }) => {
       options: exercises.map((sport) => ({ label: sport, value: sport })),
       inputValue: selectedInputValue
     },
-    { id: 'deadline', name: 'deadline', placeholder: '마감 기한', type: 'date', min: todayDate },
+    { id: 'deadline', name: 'deadline', placeholder: '마감 기한', type: 'date', min: dayjs().format('YYYY-MM-DD') },
     { id: 'address', name: 'address', placeholder: '주소', type: 'text' },
     { id: 'contents', name: 'contents', placeholder: '모집 설명', type: 'textarea', maxLength: 200 },
     { id: 'maxParticipants', name: 'maxParticipants', placeholder: '모집인원수', type: 'number', min: 1 },
@@ -168,87 +165,25 @@ const CreateGroupModal = ({ close }) => {
       <div className="bg-white p-6 w-[24rem] rounded-md" ref={modalRef}>
         <h3 className="text-center text-lg font-bold mb-4">모임 만들기</h3>
         <form onSubmit={createGroupForm} className="space-y-3">
-          {inputFields.map((field) => {
-            if (field.type === 'switch') {
-              return (
-                <div key={field.name} className="flex items-center gap-3 px-1">
-                  <Switch
-                    checked={formData[field.name]}
-                    onChange={(val) =>
-                      handleInputChange({
-                        target: { name: field.name, type: 'checkbox', checked: val }
-                      })
-                    }
-                    className={`${
-                      formData[field.name] ? 'bg-blue-500' : 'bg-gray-300'
-                    } relative inline-flex h-5 w-10 items-center rounded-full`}
-                  >
-                    <span
-                      className={`${
-                        formData[field.name] ? 'translate-x-5' : 'translate-x-1'
-                      } inline-block h-3 w-3 transform bg-white rounded-full transition-transform`}
-                    />
-                  </Switch>
-                  <span className="text-xs font-semibold">{field.placeholder}</span>
-                </div>
-              );
-            }
-
-            if (field.type === 'select') {
-              return (
-                <>
-                  <div key={field.id} onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-                    <CreatableSelect
-                      key={field.id}
-                      options={field.options}
-                      placeholder={field.placeholder}
-                      onChange={handleSelectChange}
-                      isClearable
-                      formatCreateLabel={(inputValue) => `"${inputValue}" 생성 (최대 10자)`}
-                      inputValue={selectedInputValue}
-                      className="text-xs"
-                      onInputChange={handleSelectSportsInputChange}
-                    />
-                  </div>
-                </>
-              );
-            }
-
-            if (field.type === 'textarea') {
-              return (
-                <div key={field.name} className="relative">
-                  <textarea
-                    className="w-full p-2 rounded border text-xs resize-none"
-                    name={field.name}
-                    rows={4}
-                    maxLength={field.maxLength}
-                    placeholder={`${field.placeholder} (최대 ${field.maxLength}자)`}
-                    value={formData[field.name]}
-                    onChange={handleInputChange}
-                    autoComplete="off"
-                  />
-                  <span className="absolute bottom-2 right-2 text-[8px] text-gray-400">
-                    {formData[field.name].length}/{field.maxLength}
-                  </span>
-                </div>
-              );
-            }
-
-            return (
-              <input
-                key={field.name}
-                type={field.type}
-                name={field.name}
-                min={field.min}
-                maxLength={field.maxLength}
-                value={formData[field.name]}
-                onChange={handleInputChange}
-                placeholder={field.placeholder}
-                className="w-full p-2 rounded border text-xs"
-                autoComplete="off"
+          {inputFields.map((field) => (
+            <div key={field.name} className="mb-4">
+              <RenderField
+                field={field}
+                formData={formData}
+                handleInputChange={handleInputChange}
+                handleSelectChange={handleSelectChange}
+                handleSelectSportsInputChange={handleSelectSportsInputChange}
+                handleDateChange={(date) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    deadline: date ? format(date, 'yyyy-MM-dd') : ''
+                  }));
+                }}
+                selectedInputValue={selectedInputValue}
+                from={'create'}
               />
-            );
-          })}
+            </div>
+          ))}
           <div className="flex justify-center gap-2 pt-2">
             <button type="submit" className="text-xs px-3 py-1.5 bg-btn-blue text-white rounded hover:bg-blue-400">
               생성

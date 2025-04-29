@@ -87,6 +87,17 @@ function searchAddressToCoordinate(
       marker.setMap(map);
       marker.setPosition(point);
 
+      // const selectCoordButton = infoWindow.getContentElement().querySelector('#selectCoord');
+
+      // if (selectCoordButton) {
+      //   selectCoordButton.style.pointerEvents = 'auto';
+      //   selectCoordButton.onclick = (e) => {
+      //     e.preventDefault();
+      //     e.stopPropagation();
+      //     if (window.openCreateGroupModal) window.openCreateGroupModal();
+      //   };
+      // }
+
       let centerPosition = point;
       centerPosition = {
         x: centerPosition.x + 0.001,

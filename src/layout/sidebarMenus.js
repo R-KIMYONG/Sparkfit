@@ -7,7 +7,7 @@ import {
   RiHome2Line
 } from 'react-icons/ri';
 
-export const getSidebarMenus = ({ openModal, navigate, location, hasNewPlaces, resetPlacesNotification }) => [
+export const getSidebarMenus = ({ openModal, navigate, location, hasNewPlaces }) => [
   {
     icon: RiSearchLine,
     text: '검색',
@@ -23,7 +23,6 @@ export const getSidebarMenus = ({ openModal, navigate, location, hasNewPlaces, r
     hasAlarm: hasNewPlaces,
     onClick: () => {
       navigate('/gathering');
-      resetPlacesNotification();
     }
   },
   { icon: RiArrowGoBackLine, text: '뒤로가기', onClick: () => navigate(-1) }
@@ -48,8 +47,7 @@ export const getMobileMenus = ({
   handleSignOut,
   hasNewPlaces,
   hasNewContracts,
-  resetContractsNotification,
-  resetPlacesNotification
+  resetContractsNotification
 }) => [
   { icon: RiHome2Line, text: '홈', onClick: () => navigate('/') },
   {
@@ -57,7 +55,6 @@ export const getMobileMenus = ({
     text: '모임',
     onClick: () => {
       navigate('/gathering');
-      resetPlacesNotification();
     },
     hasAlarm: hasNewPlaces
   },
