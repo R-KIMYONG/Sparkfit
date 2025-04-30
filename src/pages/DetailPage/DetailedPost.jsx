@@ -36,7 +36,7 @@ const DetailedPost = () => {
   const [activeTab, setActiveTab] = useState('memberList');
   const currentUserId = useUserId(); //현재로그인한 사용자의 아이디
   const navigate = useNavigate();
-  const { newPlaces, removeNewPlace } = usePlacesCount();
+  const { removeNewPlace } = usePlacesCount();
   const queryClient = useQueryClient();
   //모임에 대한 정보 가져오기
   const {
@@ -427,20 +427,16 @@ const DetailedPost = () => {
 
     const { error } = await supabase
       .from('Viewed_places')
-      .upsert({ user_id: currentUserId, viewed_id: placeId }, { onConflict: ['user_id'] });
+      .upsert({ user_id: currentUserId, viewed_id: placeId }, { onConflict: ['user_id', 'viewed_id'] });
 
     if (error) {
       console.error('Viewed_places 업서트 오류:', error.message);
       return;
     }
-
-    removeNewPlace(placeId);
+    if (!error) removeNewPlace(placeId);
   };
-
   useEffect(() => {
-    if (id && currentUserId) {
-      markPlaceAsViewed(id);
-    }
+    if (id && currentUserId) markPlaceAsViewed(id);
   }, [id, currentUserId]);
 
   if (isPending) {

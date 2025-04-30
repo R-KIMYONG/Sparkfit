@@ -5,7 +5,7 @@ const SidebarMenuList = ({ menus, activeItem, setActiveItem, variant = 'pc' }) =
   return (
     <ul
       className={`w-full flex ${
-        variant === 'mobile' ? 'justify-around items-center h-16' : 'flex-col justify-start items-center gap-16'
+        variant === 'mobile' ? 'justify-around items-center h-16' : 'flex-col justify-start items-center gap-8'
       } text-xs`}
     >
       {menus.map(({ icon: Icon, text, onClick, hasAlarm }, index) => (

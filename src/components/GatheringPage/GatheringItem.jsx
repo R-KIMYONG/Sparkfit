@@ -2,7 +2,7 @@ import useMap from '@/hooks/useMap';
 import usePlaces from '@/hooks/usePlaces';
 import { calculateDistance } from '@/utils/gathering/distance';
 import useFilterStore from '@/zustand/filter.list';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import Loading from '../common/Loading';
 import PlaceItem from './PlaceItem';
 import { useGatheringStore } from '@/zustand/gathering.store';
@@ -10,11 +10,11 @@ import { usePlacesCount } from '@/zustand/placescount.store';
 
 const GatheringItem = () => {
   const { sortedPlace, loading, setSortedPlace, setLoading } = useGatheringStore();
-  const { selectedButton } = useFilterStore();
+  const { filterType, sortType } = useFilterStore();
   const { places, placesLoading } = usePlaces();
   const { gps } = useMap();
   const { newPlaces } = usePlacesCount();
-
+  const prevIdsRef = useRef('');
   const sortPlaces = useCallback((places, userLocation) => {
     const placesWithDistance = places.map((place) => ({
       ...place,
@@ -35,34 +35,46 @@ const GatheringItem = () => {
       longitude: gps.long
     };
 
-    let list = sortPlaces(places, userLocation);
+    let list = [...places];
 
-    if (selectedButton === 3) {
-      list = list.filter((place) => place.isReviewed === true);
-    } else if (selectedButton === 4) {
-      list = list.filter((place) => place.isReviewed === false);
+    // 첫번째 필터링
+    if (filterType === 1) {
+      list = list.filter((place) => place.isReviewed); // 승인 필요
+    } else if (filterType === 2) {
+      list = list.filter((place) => !place.isReviewed); // 비승인
+    } else if (filterType === 3) {
+      list = list.filter((place) => newPlaces.includes(place.id)); // 미확인
     }
 
-    if (selectedButton === 1) {
-      list = list.sort((a, b) => a.deadline.localeCompare(b.deadline));
-    } else if (selectedButton === 2) {
-      list = list.sort((a, b) => b.created_at.localeCompare(a.created_at));
+    // 두번째 정렬
+    if (sortType === 0) {
+      list = sortPlaces(list, userLocation);
+    } else if (sortType === 1) {
+      list = list.sort((a, b) => b.created_at.localeCompare(a.created_at)); // 최신순
+    } else if (sortType === 2) {
+      list = list.sort((a, b) => a.deadline.localeCompare(b.deadline)); // 마감 임박순
     }
 
     return list;
-  }, [gps, places, selectedButton]);
+  }, [gps, places, filterType, sortType, newPlaces, sortPlaces]);
 
   useEffect(() => {
-    if (!placeList.length) return;
-    setSortedPlace(placeList);
-    setLoading(false);
+    const newIds = placeList.map((p) => p.id).join(',');
+
+    if (prevIdsRef.current !== newIds) {
+      prevIdsRef.current = newIds;
+      setSortedPlace(placeList);
+      setLoading(false);
+    }
   }, [placeList, setSortedPlace, setLoading]);
+
+  if (loading || placesLoading || !gps) return <Loading />;
 
   return (
     <div className="flex-1 overflow-auto scrollbar-hide overflow-x-hidden">
       <div className="flex flex-col gap-4 w-[86%] mx-auto pb-20">
-        {loading || placesLoading || !gps ? (
-          <Loading />
+        {sortedPlace.length === 0 ? (
+          <div className="text-center text-gray-400 mt-8">결과 없음</div>
         ) : (
           sortedPlace.map((place) => {
             const showBadge = newPlaces.includes(place.id);

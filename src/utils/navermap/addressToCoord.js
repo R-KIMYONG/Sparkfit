@@ -14,7 +14,7 @@ function searchAddressToCoordinate(
   const searchedValue = searchInputRef.value.trim();
 
   if (!searchedValue) {
-    swal('error', '검색어를 입력해주세요');
+    swal('error', '도로명주소 또는 지번주소를 입력해주세요.');
     return;
   }
 
@@ -30,7 +30,11 @@ function searchAddressToCoordinate(
 
       if (response.v2.meta.totalCount === 0) {
         if (!Swal.getPopup()) {
-          swal('error', `검색결과가 없습니다. 결과 ${response.v2.meta.totalCount}건`);
+          Swal.fire({
+            icon: 'warning',
+            title: '검색결과가 없습니다.',
+            text: '도로명주소 또는 지번주소를 정확하게 입력해 주세요.'
+          });
         }
         return;
       }
