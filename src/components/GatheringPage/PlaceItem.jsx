@@ -66,9 +66,9 @@ const PlaceItem = ({ place, showBadge }) => {
             <ul className="flex gap-2.5">
               <li className="rounded-full bg-[#efefef] px-3 py-1.5 line-height-none text-xs">{place.sports_name}</li>
               <li className="py-1.5 line-height-none text-xs">{place.region}</li>
-              <li className="py-1.5 line-height-none text-xs text-[#82C0F9]">{`${place.distance.toFixed(
-                1
-              )} km 이내`}</li>
+              <li className="py-1.5 line-height-none text-xs text-[#82C0F9]">
+                {typeof place.distance === 'number' ? `${place.distance.toFixed(1)} km 이내` : '거리 정보 없음'}
+              </li>
             </ul>
           </div>
           <div className="flex items-center gap-1">

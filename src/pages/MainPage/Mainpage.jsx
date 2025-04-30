@@ -149,7 +149,7 @@ function Mainpage({ user = null, contracts = [] }) {
       <section className="relative flex w-dvw h-dvh">
         <form className="sm:left-[15%] md:left-[10%] lg:left-[7%] absolute z-10 flex justify-between items-center gap-1 rounded bg-white p-1 border border-gray-300 box-border left-5 top-5 ml-1 w-64">
           <input
-            type="text"
+            type="search"
             id="search-input"
             className="bg-gray-50 border w-4/5 border-gray-300 text-gray-900 rounded focus:ring-blue-500 focus:border-blue-500 py-[3px] px-2 text-xs"
             ref={searchInputRef}

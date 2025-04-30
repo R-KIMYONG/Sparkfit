@@ -4,24 +4,38 @@ import Select from 'react-select';
 
 const FilteringList = () => {
   const navigate = useNavigate();
-  const { selectedButton, handleButtonSelect } = useFilterStore();
-  const SortButton = ['거리순', '마감기한', '최신순', '승인 필요', '승인 필요 없음'];
-  const sortOptions = SortButton.map((sort, idx) => ({
-    value: idx,
-    label: sort
-  }));
-  const handleSelectChange = (selectedOption) => {
-    handleButtonSelect(selectedOption.value);
-  };
+
+  const { filterType, sortType, setFilterType, setSortType } = useFilterStore();
+
+  const filterOptions = [
+    { value: 0, label: '전체 모임' },
+    { value: 1, label: '승인 필요 모임' },
+    { value: 2, label: '비승인 모임' },
+    { value: 3, label: '미확인 모임' }
+  ];
+
+  const sortOptions = [
+    { value: 0, label: '거리순' },
+    { value: 1, label: '최신순' },
+    { value: 2, label: '마감임박순' }
+  ];
+
   return (
     <div className="flex justify-between sticky top-0 z-10 w-[90%] box-border mx-auto mt-8">
-      <div>
+      <div className="flex items-center gap-2">
         <Select
-          options={sortOptions}
-          value={sortOptions.find((option) => option.value === selectedButton)}
-          onChange={handleSelectChange}
+          options={filterOptions}
+          value={filterOptions.find((option) => option.value === filterType)}
+          onChange={(option) => setFilterType(option.value)}
           className="w-[8rem] text-xs"
-          placeholder="필터 선택"
+          placeholder="모임 필터"
+        />
+        <Select
+          className="w-[8rem] text-xs"
+          options={sortOptions}
+          value={sortOptions.find((option) => option.value === sortType)}
+          onChange={(option) => setSortType(option.value)}
+          placeholder="정렬 기준"
         />
       </div>
       <button

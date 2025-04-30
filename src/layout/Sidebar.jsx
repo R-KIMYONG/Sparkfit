@@ -16,18 +16,13 @@ export default function Sidebar() {
   const [activeItem, setActiveItem] = useState('홈');
   const signOut = useUserStore((state) => state.signOut);
   const { openModal } = useSearchStore();
-  const { placesCount, startFetching, stopFetching, hasNewContracts, hasNewPlaces, resetContractsNotification } =
-    usePlacesCount((state) => state);
   const userId = useUserId();
+
+  const { startFetching, stopFetching, hasNewContracts, hasNewPlaces, resetContractsNotification } = usePlacesCount();
   useEffect(() => {
-    if (userId) {
-      startFetching(userId);
-    }
-    return () => {
-      stopFetching();
-    };
-  }, [startFetching, stopFetching, userId]);
-  console.log(hasNewPlaces)
+    if (userId) startFetching(userId);
+    return () => stopFetching();
+  }, [userId]);
   const handleSignOut = async () => {
     try {
       const result = await Swal.fire({
@@ -64,7 +59,6 @@ export default function Sidebar() {
     openModal,
     navigate,
     location,
-    placesCount,
     hasNewPlaces
   });
   const bottomMenus = getBottomMenus({
@@ -77,7 +71,6 @@ export default function Sidebar() {
     openModal,
     location,
     handleSignOut,
-    placesCount,
     hasNewPlaces,
     hasNewContracts,
     resetContractsNotification
@@ -86,7 +79,7 @@ export default function Sidebar() {
     <>
       {/* PC 사이드바 */}
       <div className="bg-white shadow-sidebarshaow fixed top-0 left-0 h-lvh w-16 justify-center items-center sm:flex hidden text-sm z-10">
-        <div className="h-calc-full-minus-110 w-11 mx-auto flex flex-col justify-between">
+        <div className="h-calc-full-minus-110 w-11 mx-auto flex flex-col justify-between gap-14">
           {/* 로고 */}
           <h1 className="w-logowidth h-logoheight mx-auto">
             <Link className="block size-full" to="/">
@@ -94,32 +87,34 @@ export default function Sidebar() {
             </Link>
           </h1>
 
-          {/* 사이드 메뉴 (PC) */}
-          <SidebarMenuList
-            menus={sidebarMenus}
-            activeItem={activeItem}
-            setActiveItem={(text) => {
-              setActiveItem(text);
-              sidebarMenus.find((item) => item.text === text)?.onClick();
-              if (text === '모임') stopFetching();
-            }}
-            variant="pc"
-          />
+          <div className="flex-1 flex flex-col justify-between">
+            {/* 사이드 메뉴 (PC) */}
+            <SidebarMenuList
+              menus={sidebarMenus}
+              activeItem={activeItem}
+              setActiveItem={(text) => {
+                setActiveItem(text);
+                sidebarMenus.find((item) => item.text === text)?.onClick();
+                if (text === '모임') stopFetching();
+              }}
+              variant="pc"
+            />
 
-          {/* 하단 메뉴 (PC) */}
-          <SidebarMenuList
-            menus={bottomMenus}
-            activeItem={activeItem}
-            setActiveItem={(text) => {
-              setActiveItem(text);
-              bottomMenus.find((item) => item.text === text)?.onClick();
-              if (text === '내 계정') {
-                resetContractsNotification();
-                stopFetching();
-              }
-            }}
-            variant="pc"
-          />
+            {/* 하단 메뉴 (PC) */}
+            <SidebarMenuList
+              menus={bottomMenus}
+              activeItem={activeItem}
+              setActiveItem={(text) => {
+                setActiveItem(text);
+                bottomMenus.find((item) => item.text === text)?.onClick();
+                if (text === '내 계정') {
+                  resetContractsNotification();
+                  stopFetching();
+                }
+              }}
+              variant="pc"
+            />
+          </div>
         </div>
       </div>
 
