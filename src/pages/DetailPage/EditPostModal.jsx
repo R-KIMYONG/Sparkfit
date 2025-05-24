@@ -124,7 +124,7 @@ const EditPostModal = ({ close, post, postId, participantCount }) => {
     { name: 'max_participants', placeholder: '모집인원수', type: 'number', min: 1 }
   ];
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
       <div className={`bg-white p-6 rounded-lg w-[90%] xl:w-[35%] lg:w-1/3 md:w-1/3 sm:w-2/4 sm:ml-[6rem]`}>
         <h2 className="text-xl font-semibold mb-4">모임 정보 수정</h2>
         <form onSubmit={handleUpdate}>
