@@ -1,61 +1,41 @@
-import supabase from '@/supabase/supabaseClient';
-import { useQuery } from '@tanstack/react-query';
-import Loading from '../common/Loading';
-import Error from '../common/Error';
 import { ApprovalResults, STDeadline } from '../common/commonStyle';
+import NewBadge from '../common/NewBadge';
 import { getDeadlineStatus } from '@/utils/dateUtils';
-const ClubInfo = ({ placeID, status }) => {
-  const MyClubLists = async () => {
-    const { data: mylist, isError } = await supabase
-      .from('Places')
-      .select('region, sports_name, gather_name, deadline')
-      .eq('id', placeID);
 
-    if (isError) {
-      throw new Error('데이터 가져오기 실패');
-    }
-
-    return mylist;
-  };
-  const {
-    data: theClubs,
-    isPending,
-    isError: theClubsError
-  } = useQuery({
-    queryKey: ['myClubs', placeID],
-    queryFn: MyClubLists,
-    enabled: !!placeID
-  });
-
-  const $status = theClubs && theClubs.length > 0 ? getDeadlineStatus(theClubs[0].deadline) : null;
-  if (theClubsError) {
-    return <Error message="모임 정보를 불러오는 중 오류가 발생했습니다. 다시 시도해주세요!" />;
-  }
-
-  if (isPending) {
-    return <Loading />;
-  }
-
+const ClubInfo = ({ sportsName, deadline, gatherName, region, status, hasAlert, isReviewed }) => {
+  const deadlineStatus = getDeadlineStatus(deadline);
   return (
-    <>
-      <div className="p-4 min-h-35 border border-sky-100 cursor-pointer min-h-35   rounded-lg mb-5 hover:shadow-xl transition-all duration-300 ease-in-out">
-        <div className="flex justify-between items-center">
-          <div className="bg-[#efefef] rounded-md px-3 py-2 box-border text-center text-[0.5rem]">
-            {theClubs[0].sports_name}
-          </div>
-          <STDeadline $status={$status}>{theClubs[0].deadline}</STDeadline>
+    <div className="p-3 border border-sky-100 cursor-pointer rounded-lg hover:shadow-xl transition-all duration-300 ease-in-out flex flex-col justify-between box-border h-full">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <div className="bg-[#efefef] rounded-md px-3 py-1 text-center text-[0.5rem] font-bold">{sportsName}</div>
+          {hasAlert && <NewBadge />}
         </div>
-        <div className="flex justify-between items-center">
-          <div className="flex flex-col text-xs">
-            <p className="pb-2 mt-4 font-black truncate">{theClubs[0].gather_name}</p>
-            <p>{theClubs[0].region}</p>
-          </div>
-          <ApprovalResults $status={status}>
-            {status === 'rejected' ? '승인거절' : status === 'pending' ? '승인대기' : '가입완료'}
-          </ApprovalResults>
-        </div>
+        <STDeadline $status={deadlineStatus}>{deadline}</STDeadline>
       </div>
-    </>
+
+      <div className="flex justify-between items-end text-xs gap-2">
+        <div className="flex flex-col gap-1 overflow-hidden min-h-[3.5rem]">
+          <p className="font-black text-sm leading-snug break-words whitespace-normal line-clamp-2">{gatherName}</p>
+          <p className="text-xs text-gray-600 break-words whitespace-normal line-clamp-2">{region}</p>
+        </div>
+        {status && (
+          <ApprovalResults $status={status}>
+            <span className="text-xs label whitespace-nowrap">
+              {status === 'rejected' ? '승인거절' : status === 'pending' ? '승인대기' : '가입완료'}
+            </span>
+          </ApprovalResults>
+        )}
+        {isReviewed !== undefined && (
+          <div>
+            <ApprovalResults $status={!isReviewed}>
+              <span className="icon">{isReviewed ? '⚠️' : '✅'}</span>
+              <span className="text-[0.5rem] whitespace-nowrap">{isReviewed ? '승인 필요' : '승인 불필요'}</span>
+            </ApprovalResults>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

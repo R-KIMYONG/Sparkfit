@@ -112,7 +112,7 @@ const EditPostModal = ({ close, post, postId, participantCount }) => {
   }, []);
 
   const postDetails = [
-    { name: 'gatherName', placeholder: '모임명', type: 'text', maxLength: 20 },
+    { name: 'gatherName', placeholder: '모임명', type: 'text', maxLength: 10 },
     {
       name: 'sportsName',
       placeholder: '스포츠명',

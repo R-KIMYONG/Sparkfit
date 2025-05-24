@@ -28,11 +28,11 @@ export const getSidebarMenus = ({ openModal, navigate, location, hasNewPlaces })
   { icon: RiArrowGoBackLine, text: '뒤로가기', onClick: () => navigate(-1) }
 ];
 
-export const getBottomMenus = ({ navigate, handleSignOut, hasNewContracts }) => [
+export const getBottomMenus = ({ navigate, handleSignOut, hasSidebarAlert }) => [
   {
     icon: RiUser3Line,
     text: '내 계정',
-    hasAlarm: hasNewContracts,
+    hasAlarm: hasSidebarAlert,
     onClick: () => {
       navigate('/mypage');
     }
@@ -46,7 +46,7 @@ export const getMobileMenus = ({
   location,
   handleSignOut,
   hasNewPlaces,
-  hasNewContracts,
+  hasSidebarAlert,
   resetContractsNotification
 }) => [
   { icon: RiHome2Line, text: '홈', onClick: () => navigate('/') },
@@ -70,7 +70,7 @@ export const getMobileMenus = ({
   {
     icon: RiUser3Line,
     text: '내 계정',
-    hasAlarm: hasNewContracts,
+    hasAlarm: hasSidebarAlert,
     onClick: () => {
       navigate('/mypage');
       resetContractsNotification();

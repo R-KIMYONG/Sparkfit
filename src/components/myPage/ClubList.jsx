@@ -8,13 +8,20 @@ import { useState } from 'react';
 import Loading from '../common/Loading';
 import Error from '../common/Error';
 import useUserId from '@/hooks/useUserId';
-import { ApprovalResults, STDeadline, STSection } from '../common/commonStyle';
+import { STSection } from '../common/commonStyle';
 import ClubInfo from './ClubInfo';
-import { getDeadlineStatus } from '@/utils/dateUtils';
+import { usePlacesCount } from '@/zustand/placescount.store';
+import NewBadge from '../common/NewBadge';
+
 const ClubList = () => {
   const [activeTab, setActiveTab] = useState('joined');
   const navigate = useNavigate();
   const userId = useUserId();
+  const creatorContractAlerts = usePlacesCount((state) => state.creatorContractAlerts);
+  const userContractAlerts = usePlacesCount((state) => state.userContractAlerts);
+
+  console.log('모임장 알림', creatorContractAlerts);
+  console.log('멤버가 받을 알림', userContractAlerts);
 
   const getMyGathering = async () => {
     const { data, error } = await supabase
@@ -50,6 +57,23 @@ const ClubList = () => {
   };
 
   const {
+    data: placesData,
+    isPending: isPlacesPending,
+    isError: isPlacesError
+  } = useQuery({
+    queryKey: ['placesData'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('Places').select('id, region, sports_name, gather_name, deadline');
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      return data;
+    },
+    enabled: !!userId
+  });
+
+  const {
     data: MyCreateGathering,
     isPending: isMyCreateGatheringPending,
     isError: isMyCreateGatheringError
@@ -59,10 +83,6 @@ const ClubList = () => {
     enabled: !!userId
   });
 
-  const MyCreateGatheringWithStatus = MyCreateGathering?.map((gathering) => ({
-    ...gathering,
-    $status: getDeadlineStatus(gathering.deadline)
-  }));
   const handleMoveToDetail = (place_id) => {
     Swal.fire({
       title: '모임 상세 페이지로 이동하시겠어요?',
@@ -78,10 +98,11 @@ const ClubList = () => {
     });
   };
 
-  if (isTheGatheringsPending && isMyCreateGatheringPending) {
+  if (isTheGatheringsPending || isMyCreateGatheringPending || isPlacesPending) {
     return <Loading />;
   }
-  if (isMyCreateGatheringError || isTheGatheringsError) {
+
+  if (isMyCreateGatheringError || isTheGatheringsError || isPlacesError) {
     return <Error message="모임 목록을 불러오는 중 오류가 발생했습니다. 다시 시도해주세요!" />;
   }
   return (
@@ -90,7 +111,7 @@ const ClubList = () => {
         <h3 className="flex gap-2 mt-2 text-xl items-center">
           <RiGroupLine />내 번개 모임
         </h3>
-        <div className="flex mb-5 box-border w-full">
+        <div className="flex box-border w-full">
           <button
             className={`px-5 py-2 w-1/2 text-sm font-bold transition-all border-b-2 ${
               activeTab === 'joined'
@@ -99,6 +120,10 @@ const ClubList = () => {
             }`}
             onClick={() => setActiveTab('joined')}
           >
+            {/* {userContractAlerts.length > 0 ? <NewBadge className="mr-1" /> : ''} */}
+            {userContractAlerts.some(
+              (alert) => alert.userId === userId && ['approved', 'rejected'].includes(alert.type)
+            ) && <NewBadge className="mr-1" />}
             <AiFillThunderbolt className="inline-block mr-1" />
             가입한 번개
           </button>
@@ -110,66 +135,67 @@ const ClubList = () => {
             }`}
             onClick={() => setActiveTab('created')}
           >
+            {creatorContractAlerts.length > 0 ? <NewBadge className="mr-1" /> : ''}
             <AiOutlineThunderbolt className="inline-block mr-1" />
-            만든 번개
+            My 번개
           </button>
         </div>
-        {activeTab === 'joined' ? (
-          // 내가 가입한 번개 리스트
-          theGatherings && theGatherings.length > 0 ? (
-            <ul className="truncate flex items-center flex-wrap gap-2">
-              {theGatherings.map(({ place_id, status }, index) => (
-                <li
-                  key={index + 1}
-                  onClick={() => handleMoveToDetail(place_id)}
-                  className="cursor-pointer truncate flex-auto"
-                >
-                  <ClubInfo placeID={place_id} status={status} />
-                </li>
-              ))}
+        {/* 내가 가입한 모임 리스트 */}
+        {activeTab === 'joined' &&
+          (theGatherings && theGatherings.length > 0 ? (
+            <ul className="grid sm:grid-cols-[repeat(auto-fill,_minmax(200px,1fr))] justify-start gap-4 grid-cols-1">
+              {theGatherings.map(({ place_id, status }, _) => {
+                const club = placesData.find((p) => p.id === place_id);
+                const hasAlert = userContractAlerts.some(
+                  (alert) => alert.placeId === place_id && ['approved', 'rejected'].includes(alert.type)
+                );
+
+                return (
+                  <li key={place_id} onClick={() => handleMoveToDetail(place_id)} className="h-[120px] box-border">
+                    <ClubInfo
+                      sportsName={club?.sports_name}
+                      deadline={club?.deadline}
+                      gatherName={club?.gather_name}
+                      region={club?.region}
+                      status={status}
+                      hasAlert={hasAlert}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <div className="flex mx-auto text-slate-400 items-center">
               가입한 번개 <AiFillThunderbolt /> 모임이 없어요!
             </div>
-          )
-        ) : // 내가 만든 번개 리스트
-        MyCreateGathering && MyCreateGathering.length > 0 ? (
-          <ul className="flex items-center flex-wrap gap-2">
-            {MyCreateGatheringWithStatus.map(
-              ({ region, sports_name, gather_name, deadline, id, isReviewed, $status }, index) => (
-                <li
-                  key={index + 1}
-                  onClick={() => handleMoveToDetail(id)}
-                  className="cursor-pointer p-4 border border-teal-100 rounded-lg hover:shadow-xl flex-auto box-border"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="bg-[#efefef] rounded-md px-5 py-2 text-center text-[0.7rem] font-bold">
-                      {sports_name}
-                    </div>
-                    <STDeadline $status={$status}>{deadline}</STDeadline>
-                  </div>
-                  <div className="flex justify-between items-end text-xs mt-2">
-                    <div className="flex flex-col gap-2">
-                      <p className="font-black truncate">{gather_name}</p>
-                      <p>{region}</p>
-                    </div>
-                    <div>
-                      <ApprovalResults $status={isReviewed}>
-                        <span className="icon">{isReviewed ? '⚠️' : '✅'}</span>
-                        <span className="label">{isReviewed ? '승인 필요' : '승인 필요 없음'}</span>
-                      </ApprovalResults>
-                    </div>
-                  </div>
-                </li>
-              )
-            )}
-          </ul>
-        ) : (
-          <div className="flex mx-auto text-slate-400 items-center">
-            만든 번개 <AiOutlineThunderbolt /> 모임이 없어요!
-          </div>
-        )}
+          ))}
+        {/* 내가 만든 모임 리스트 */}
+        {activeTab === 'created' &&
+          (MyCreateGathering && MyCreateGathering.length > 0 ? (
+            <ul className="grid sm:grid-cols-[repeat(auto-fill,_minmax(200px,1fr))] justify-start gap-4 grid-cols-1">
+              {MyCreateGathering.map(({ id, sports_name, deadline, gather_name, region, isReviewed }) => {
+                const hasAlert = creatorContractAlerts.some(
+                  (alert) => alert.placeId === id && alert.placeCreatorId === userId
+                );
+                return (
+                  <li key={id} onClick={() => handleMoveToDetail(id)} className="h-[120px] box-border">
+                    <ClubInfo
+                      sportsName={sports_name}
+                      deadline={deadline}
+                      gatherName={gather_name}
+                      region={region}
+                      hasAlert={hasAlert}
+                      isReviewed={isReviewed}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="flex mx-auto text-slate-400 items-center">
+              만든 번개 <AiOutlineThunderbolt /> 모임이 없어요!
+            </div>
+          ))}
       </STSection>
     </>
   );

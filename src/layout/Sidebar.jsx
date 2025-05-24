@@ -1,5 +1,5 @@
 import { useUserStore } from '@/zustand/auth.store';
-import { usePlacesCount } from '@/zustand/placescount.store';
+import { fetchContractAlerts, usePlacesCount } from '@/zustand/placescount.store';
 import { useEffect, useState } from 'react';
 import { RiArrowGoBackLine } from 'react-icons/ri';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { getSidebarMenus, getBottomMenus, getMobileMenus } from './sidebarMenus'
 import useUserId from '@/hooks/useUserId';
 import { useSearchStore } from '@/zustand/searchModal.store';
 import SidebarMenuList from './SidebarMenuList';
+import supabase from '@/supabase/supabaseClient';
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -18,10 +19,46 @@ export default function Sidebar() {
   const { openModal } = useSearchStore();
   const userId = useUserId();
 
-  const { startFetching, stopFetching, hasNewContracts, hasNewPlaces, resetContractsNotification } = usePlacesCount();
+  const {
+    startFetching,
+    stopFetching,
+    hasNewPlaces,
+    resetContractsNotification,
+    creatorContractAlerts,
+    userContractAlerts
+  } = usePlacesCount();
+
+  const hasSidebarAlert =
+    creatorContractAlerts.some((alert) => alert.placeCreatorId === userId && alert.targetUserId !== userId) ||
+    userContractAlerts.some((alert) => alert.userId === userId && ['approved', 'rejected'].includes(alert.type));
   useEffect(() => {
     if (userId) startFetching(userId);
     return () => stopFetching();
+  }, [userId]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('viewed-contracts-events')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'Viewed_contracts'
+        },
+        async (payload) => {
+          const { user_id, target_user_id } = payload.new || payload.old || {};
+          if (user_id === userId || target_user_id === userId) {
+            // 본인이 알림 대상이면 상태 업데이트
+            await fetchContractAlerts(userId, usePlacesCount.setState);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
   const handleSignOut = async () => {
     try {
@@ -64,7 +101,7 @@ export default function Sidebar() {
   const bottomMenus = getBottomMenus({
     navigate,
     handleSignOut,
-    hasNewContracts
+    hasSidebarAlert
   });
   const mobileMenus = getMobileMenus({
     navigate,
@@ -72,7 +109,7 @@ export default function Sidebar() {
     location,
     handleSignOut,
     hasNewPlaces,
-    hasNewContracts,
+    hasSidebarAlert,
     resetContractsNotification
   });
   return (
