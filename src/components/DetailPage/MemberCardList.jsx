@@ -1,11 +1,17 @@
 import React from 'react';
-
+import NewBadge from '../common/NewBadge';
+import dayjs from 'dayjs';
+dayjs.locale('ko');
 const MemberCardList = ({
   members,
   type, // 'approved' | 'pending' 두가지 리스트를 구별하기위함
   currentUserId, //현재 로그인중인 사용자
   postCreatorId,
-  onAction // (userId, actionType) => void
+  onAction, // (userId, actionType) => void
+  placeId,
+  markCreatorAlertAsRead,
+  markUserAlertAsRead,
+  hasAlert
 }) => {
   if (!members || members.length === 0) {
     return (
@@ -14,17 +20,25 @@ const MemberCardList = ({
       </p>
     );
   }
-
   return (
-    <ul className="grid grid-cols-[repeat(auto-fit,_minmax(15rem,_1fr))] gap-3">
+    <ul className="flex flex-wrap gap-2 justify-start">
       {members.map((info) => {
         const defaultAvatar = info.gender === 'male' ? '/Ellipse1.png' : '/Ellipse2.png';
         const avatarSrc = info.profile_image || defaultAvatar;
-
         return (
-          <li key={info.id} className="border-b py-2 bg-[#EBF7FF] p-4 rounded-md flex flex-col min-w-[20%] max-w-full">
+          <li
+            key={info.id}
+            onClick={() => {
+              markCreatorAlertAsRead(placeId, postCreatorId, info.id);
+              if (markUserAlertAsRead && info.id === currentUserId) {
+                markUserAlertAsRead(currentUserId, placeId);
+              }
+            }}
+            className="border-b py-2 bg-[#EBF7FF] p-4 rounded-md flex flex-col flex-grow basis-[240px] max-w-[24%] min-w-[240px] relative cursor-pointer"
+          >
+            {hasAlert && <NewBadge className="absolute left-1 top-1" />}
             <div className="flex justify-between items-center gap-3">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <img src={avatarSrc} alt="프로필" className="w-10 h-10 rounded-full" />
                 <div>
                   <p className="text-sm font-semibold">{info.username}</p>
@@ -42,6 +56,11 @@ const MemberCardList = ({
                 </button>
               )}
             </div>
+            {info.created_at && (
+              <p className="text-xs text-gray-500 mt-2">
+                신청일: {dayjs(info.contract_created_at).format('YYYY년 M월 D일 HH시 mm분 ss초')}
+              </p>
+            )}
 
             {type === 'pending' && (
               <div className="flex items-center mt-2">
@@ -52,7 +71,10 @@ const MemberCardList = ({
                   승인
                 </button>
                 <button
-                  onClick={() => onAction(info.id, 'rejected')}
+                  onClick={() => {
+                    onAction(info.id, 'rejected');
+                    markCreatorAlertAsRead(placeId, postCreatorId, info.id);
+                  }}
                   className="text-xs px-3 py-1.5 border-none bg-btn-red rounded-md text-white m-1.5 font-semibold cursor-pointer hover:bg-red-400 transition-all"
                 >
                   거절

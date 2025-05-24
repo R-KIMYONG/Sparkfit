@@ -9,6 +9,7 @@ import NavermapScriptComponent from '@/pages/MainPage/NavermapScriptComponent';
 import GatheringList from '@/pages/GatheringPage/GatheringList';
 import MyPage from '@/components/myPage/MyPage';
 import DetailedPost from '@/pages/DetailPage/DetailedPost';
+import dayjs from 'dayjs';
 
 const SearchModal = () => {
   const { closeModal, setSearchKeyword, searchResults, setSearchResults } = useSearchStore();
@@ -18,7 +19,7 @@ const SearchModal = () => {
   const backgroundLocation = location.state?.backgroundLocation;
   const isDirect = !backgroundLocation;
   const isModalOpen = location.pathname.endsWith('/searchmodal');
-  const currentDate = new Date().toISOString().split('T')[0];
+  const currentDate = dayjs().format('YYYY-MM-DD');
   const path = location.pathname;
   const [searchParams, setSearchParams] = useSearchParams();
   const keywordInUrl = searchParams.get('keyword') || '';
@@ -42,7 +43,7 @@ const SearchModal = () => {
         eOrNothing.preventDefault();
       }
 
-      const keyword = searchInputRef.current?.value?.trim() || '';
+      const keyword = searchInputRef.current?.value?.trim().toLowerCase();
       if (!keyword) {
         Swal.fire({
           title: '검색 실패',
@@ -56,13 +57,12 @@ const SearchModal = () => {
       setSearchKeyword(keyword);
       setSearchParams({ keyword }, { replace: true });
       Swal.fire({ title: '검색 중입니다...', didOpen: () => Swal.showLoading() });
-
       try {
         const { data, error } = await supabase
           .from('Places')
           .select()
           .or(`region.ilike.%${keyword}%,sports_name.ilike.%${keyword}%,gather_name.ilike.%${keyword}%`)
-          .gt('deadline', currentDate)
+          .gte('deadline', currentDate)
           .order('deadline', { ascending: true });
 
         if (error) throw error;

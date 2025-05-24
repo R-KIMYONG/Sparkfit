@@ -1,6 +1,7 @@
 import supabase from '@/supabase/supabaseClient';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import NewBadge from '../common/NewBadge';
 
 const PlaceItem = ({ place, showBadge }) => {
   const navigate = useNavigate();
@@ -50,9 +51,7 @@ const PlaceItem = ({ place, showBadge }) => {
             <div className="flex justify-between items-center">
               <div className="flex items-center flex-1 mb-3 gap-2">
                 <h2 className="text-lg font-semibold">{place.gather_name}</h2>
-                {showBadge && (
-                  <span className="text-red-500 text-xs font-bold bg-red-100 px-2.5 py-0.5 rounded-full">New</span>
-                )}
+                {showBadge && <NewBadge />}
               </div>
               <div>
                 <button

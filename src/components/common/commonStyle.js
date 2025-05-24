@@ -6,6 +6,7 @@ export const STSection = styled.section`
   padding: 0.8rem;
   gap: 1rem;
   width: 100%;
+  box-sizing: border-box;
 `;
 
 export const STDeadline = styled.div`
@@ -13,9 +14,9 @@ export const STDeadline = styled.div`
   padding: 0.3rem 0.5rem;
   border-radius: 5px;
   color: white;
-  font-size: 0.7rem;
+  font-size: 0.45rem;
   font-weight: bold;
-  line-height: 1rem;
+  line-height: 0.5rem;
   text-align: center;
   box-sizing: border-box;
 
@@ -34,7 +35,7 @@ export const STDeadline = styled.div`
 `;
 export const ApprovalResults = styled.p`
   height: min-content;
-  padding: 0.5rem 0.6rem;
+  padding: 0.3rem 0.4rem;
   border-radius: 0.375rem;
   font-size: 0.75rem;
   font-weight: 600;
@@ -44,8 +45,8 @@ export const ApprovalResults = styled.p`
   cursor: pointer;
   transition: background-color 0.3s ease;
   box-sizing: border-box;
-  background-color: ${({ $status }) => ($status ? '#e0f2fe' : '#fee2e2')};
-  color: ${({ $status }) => ($status ? '#0369a1' : '#b91c1c')};
+  background-color: ${({ $status }) => ($status !== 'rejected' ? '#e0f2fe' : '#fee2e2')};
+  color: ${({ $status }) => ($status !== 'rejected' ? '#0369a1' : '#b91c1c')};
 
   .icon {
     font-size: 0.8rem;
@@ -56,6 +57,7 @@ export const ApprovalResults = styled.p`
   }
 
   &:hover {
-    background-color: ${({ $status }) => ($status ? '#bae6fd' : '#fecaca')}; /* hover 시 조금 더 진하게 */
+    background-color: ${({ $status }) =>
+      $status !== 'rejected' ? '#bae6fd' : '#fecaca'}; /* hover 시 조금 더 진하게 */
   }
 `;

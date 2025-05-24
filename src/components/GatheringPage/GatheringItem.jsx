@@ -26,7 +26,6 @@ const GatheringItem = () => {
 
     return placesWithDistance;
   }, []);
-
   const placeList = useMemo(() => {
     if (!gps || !places.length) return [];
 
@@ -60,13 +59,18 @@ const GatheringItem = () => {
 
   useEffect(() => {
     const newIds = placeList.map((p) => p.id).join(',');
+    const prevIds = prevIdsRef.current;
 
-    if (prevIdsRef.current !== newIds) {
+    const hasListChanged = prevIds !== newIds;
+    const isEmptyNow = placeList.length === 0;
+    const wasNotEmpty = prevIds.split(',').length > 0;
+
+    if (hasListChanged || (filterType === 3 && isEmptyNow && wasNotEmpty)) {
       prevIdsRef.current = newIds;
       setSortedPlace(placeList);
       setLoading(false);
     }
-  }, [placeList, setSortedPlace, setLoading]);
+  }, [placeList, newPlaces, filterType, setSortedPlace, setLoading]);
 
   if (loading || placesLoading || !gps) return <Loading />;
 

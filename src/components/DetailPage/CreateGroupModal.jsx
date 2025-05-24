@@ -130,7 +130,7 @@ const CreateGroupModal = ({ close }) => {
   useOutsideClick(modalRef, handleClose);
 
   const inputFields = [
-    { id: 'groupName', name: 'groupName', placeholder: '모임명', type: 'text', maxLength: 20 },
+    { id: 'groupName', name: 'groupName', placeholder: '모임명', type: 'text', maxLength: 10 },
     {
       id: 'sportsName',
       name: 'sportsName',
