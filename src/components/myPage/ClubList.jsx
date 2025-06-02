@@ -20,9 +20,6 @@ const ClubList = () => {
   const creatorContractAlerts = usePlacesCount((state) => state.creatorContractAlerts);
   const userContractAlerts = usePlacesCount((state) => state.userContractAlerts);
 
-  console.log('모임장 알림', creatorContractAlerts);
-  console.log('멤버가 받을 알림', userContractAlerts);
-
   const getMyGathering = async () => {
     const { data, error } = await supabase
       .from('Contracts')

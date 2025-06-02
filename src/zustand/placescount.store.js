@@ -99,8 +99,6 @@ export const fetchContractAlerts = async (userId, set) => {
         userId: item.user_id, // 어느 멤버의 알림인지 확인
         type: item.type // 'approved' 또는 'rejected'
       }));
-    console.log(creatorAlerts);
-    console.log(userAlerts);
 
     set({
       creatorContractAlerts: creatorAlerts,
