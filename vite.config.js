@@ -7,7 +7,14 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
-    allowedHosts: ['383c-58-239-97-34.ngrok-free.app']
+    allowedHosts: ['383c-58-239-97-34.ngrok-free.app'],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5174', // 프록시 서버 포트
+        changeOrigin: true,
+        secure: false
+      }
+    }
   },
   plugins: [
     react(),

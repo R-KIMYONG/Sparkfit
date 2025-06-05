@@ -24,7 +24,6 @@ export const RenderField = ({
     className: 'w-full border px-3 py-2 rounded-md text-xs',
     autoComplete: 'off'
   };
-
   const range = (start, end, step = 1) => {
     const output = [];
     for (let i = start; i < end; i += step) {
@@ -49,8 +48,8 @@ export const RenderField = ({
     '12월 (Dec)'
   ];
 
-  switch (type) {
-    case 'select':
+  switch (name) {
+    case 'sportsName':
       return (
         <div onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
           <CreatableSelect
@@ -76,7 +75,7 @@ export const RenderField = ({
         </div>
       );
 
-    case 'textarea':
+    case 'contents':
       return (
         <div className="relative">
           <textarea {...commonProps} rows={4} maxLength={maxLength} style={{ resize: 'none' }} />
@@ -86,7 +85,7 @@ export const RenderField = ({
         </div>
       );
 
-    case 'switch':
+    case 'isReviewed':
       return (
         <div className="flex items-center gap-3 px-1">
           <Switch
@@ -110,7 +109,7 @@ export const RenderField = ({
         </div>
       );
 
-    case 'date':
+    case 'deadline':
       return (
         <div className="relative">
           <DatePicker
@@ -198,6 +197,17 @@ export const RenderField = ({
           />
           {formData[name] && <p className="text-[10px] text-gray-400 mt-1 ml-1">{`마감일: ${formData[name]}`}</p>}
         </div>
+      );
+    case 'address':
+      return (
+        <input
+          type="text"
+          {...commonProps}
+          readOnly
+          onCopy={(e) => e.preventDefault()}
+          onSelect={(e) => e.preventDefault()}
+          className={`${commonProps.className} bg-gray-200 cursor-not-allowed text-gray-500 select-none`}
+        />
       );
 
     default:

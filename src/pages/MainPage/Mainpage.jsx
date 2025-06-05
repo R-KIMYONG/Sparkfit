@@ -4,7 +4,7 @@ import usePlaces from '@/hooks/usePlaces';
 import checkForMarkersRendering from '@/utils/navermap/checkForMarkersRendering';
 import isMobile from '@/utils/navermap/isMobile';
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useMap from '../../hooks/useMap';
 import useCreatedPlaceModal from '@/zustand/createdPlaceModal.store';
@@ -51,6 +51,10 @@ function Mainpage({ user = null, contracts = [] }) {
   useEffect(() => {
     if (places && naverMap && user && contracts) {
       prevPlacesRef.current = places;
+
+      allMarkersRef.current?.forEach((marker) => marker.setMap(null));
+      allInfoWindowsRef.current?.forEach((info) => info.close());
+
       // 마커 리스트와 정보창 리스트 선언
       const markers = [];
       const infoWindows = [];
@@ -85,9 +89,9 @@ function Mainpage({ user = null, contracts = [] }) {
           infoWindowInnerContent.parentNode.style.width = 'fit-content';
           infoWindowInnerContent.parentNode.style.height = 'fit-content';
           // infoWindowInnerContent.parentNode.style.maxHeight = '100px';
-          infoWindowInnerContent.parentNode.style.minWidth = isMobile() ? '250px' : '440px';
-          infoWindowInnerContent.parentNode.style.maxWidth = isMobile() ? '250px' : '440px';
-          infoWindowInnerContent.parentNode.style.fontSize = isMobile() ? '9px' : '14px';
+          infoWindowInnerContent.parentNode.style.minWidth = isMobile() ? '250px' : '340px';
+          infoWindowInnerContent.parentNode.style.maxWidth = isMobile() ? '250px' : '340px';
+          infoWindowInnerContent.parentNode.style.fontSize = isMobile() ? '9px' : '12px';
         }, 0);
 
         marker.place = place;
@@ -125,23 +129,22 @@ function Mainpage({ user = null, contracts = [] }) {
   }, [places, naverMap, basicMarker, navigate, user, contracts]);
 
   // 모임만들기 버튼 클릭시 동작 여기에
-  // useEffect(() => {
-  //   const handleSelectButtonDom = (e) => {
-  //     e.preventDefault();
-  //     e.stopPropagation();
-  //     setCreateGroupModal((prev) => !prev);
-  //     console.log(1)
-  //   };
-  //   if (makeGatherButtonDom) {
-  //     makeGatherButtonDom.addEventListener('click', handleSelectButtonDom);
-  //   }
+  useEffect(() => {
+    const handleSelectButtonDom = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setCreateGroupModal((prev) => !prev);
+    };
+    if (makeGatherButtonDom) {
+      makeGatherButtonDom.addEventListener('click', handleSelectButtonDom);
+    }
 
-  //   return () => {
-  //     if (makeGatherButtonDom) {
-  //       makeGatherButtonDom.removeEventListener('click', handleSelectButtonDom);
-  //     }
-  //   };
-  // }, [makeGatherButtonDom, selectedGeoData]);
+    return () => {
+      if (makeGatherButtonDom) {
+        makeGatherButtonDom.removeEventListener('click', handleSelectButtonDom);
+      }
+    };
+  }, [makeGatherButtonDom, selectedGeoData]);
 
   return (
     <>
