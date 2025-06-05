@@ -1,3 +1,21 @@
 {
-    "routes": [{ "handle": "filesystem" }, { "src": "/.*", "dest": "/index.html" }]
+  "functions": {
+    "api/reverse-geocode.js": {
+      "runtime": "nodejs18.x"
+    },
+    "api/forward-geocode.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/reverse-geocode",
+      "destination": "/api/reverse-geocode.js"
+    },
+    {
+      "source": "/api/forward-geocode",
+      "destination": "/api/forward-geocode.js"
+    }
+  ],
+  "routes": [{ "handle": "filesystem" }, { "src": "/.*", "dest": "/index.html" }]
 }
