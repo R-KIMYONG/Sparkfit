@@ -273,10 +273,23 @@ const DetailedPost = () => {
 
   //모임 삭제
   const deletePost = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.from('Places').delete().eq('id', id);
+    mutationFn: async (deletedId) => {
+      const { error } = await supabase.from('Places').delete().eq('id', deletedId);
       if (error) throw new Error(error.message);
-      return data;
+      return deletedId;
+    },
+    onMutate: async (deletedId) => {
+      await queryClient.cancelQueries(['places']); // 현재 백그라운드에서 데이터를 가져오는중이면 충돌방지하기위해 일단 취소
+
+      const previousPlaces = queryClient.getQueryData(['places']); //롤백용으로 잠시 저장해둔다.
+
+      // 삭제된 항목을 캐시에서 즉시 제거한다.
+      queryClient.setQueryData({ predicate: (query) => query.queryKey[0] === 'places' }, (old) => {
+        if (!old) return [];
+        return old.filter((place) => place.id !== deletedId);
+      });
+
+      return { previousPlaces }; //롤백용을 반환해서 오류날때 되돌리면된다.
     },
     onSuccess: () => {
       Swal.fire({
@@ -284,20 +297,27 @@ const DetailedPost = () => {
         title: '삭제 완료',
         text: '모임삭제 했습니다.',
         confirmButtonText: '확인'
-      }).then(async () => {
-        await queryClient.invalidateQueries({ queryKey: ['places'] });
-        await queryClient.refetchQueries({ queryKey: ['places'] });
-        navigate(-1);
       });
     },
-    onError: (error) => {
-      console.error(error);
+    onError: (error, _, context) => {
+      //mutationFn에 발생한 에러,mutationFn에 전달된 변수, onMutate에 반환한 값 즉 previousPlaces임
+      console.log(context);
+      if (context?.previousPlaces) {
+        queryClient.setQueryData(['places'], context.previousPlaces);
+      }
       Swal.fire({
         icon: 'error',
         title: '삭제 실패',
         text: '모임 삭제 중 오류가 발생했습니다.',
         confirmButtonText: '확인'
       });
+      console.error('모임삭제 실패 => ', error);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === 'places'
+      });
+      navigate(-1);
     }
   });
 
@@ -395,7 +415,7 @@ const DetailedPost = () => {
       reverseButtons: true
     }).then((result) => {
       if (result.isConfirmed) {
-        deletePost.mutate();
+        deletePost.mutate(id);
       }
     });
   }, [deletePost]);

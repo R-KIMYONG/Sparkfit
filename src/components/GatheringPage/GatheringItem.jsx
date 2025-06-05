@@ -9,7 +9,7 @@ import { useGatheringStore } from '@/zustand/gathering.store';
 import { usePlacesCount } from '@/zustand/placescount.store';
 
 const GatheringItem = () => {
-  const { sortedPlace, loading, setSortedPlace, setLoading } = useGatheringStore();
+  const { sortedPlace, setSortedPlace } = useGatheringStore();
   const { filterType, sortType } = useFilterStore();
   const { places, placesLoading } = usePlaces();
   const { gps } = useMap();
@@ -68,17 +68,20 @@ const GatheringItem = () => {
     if (hasListChanged || (filterType === 3 && isEmptyNow && wasNotEmpty)) {
       prevIdsRef.current = newIds;
       setSortedPlace(placeList);
-      setLoading(false);
     }
-  }, [placeList, newPlaces, filterType, setSortedPlace, setLoading]);
+  }, [placeList, newPlaces, filterType, setSortedPlace]);
 
-  if (loading || placesLoading || !gps) return <Loading />;
+  if (placesLoading || !gps) return <Loading />;
 
   return (
     <div className="flex-1 overflow-auto scrollbar-hide overflow-x-hidden">
       <div className="flex flex-col gap-4 w-[86%] mx-auto pb-20">
         {sortedPlace.length === 0 ? (
-          <div className="text-center text-gray-400 mt-8">결과 없음</div>
+          <div className="text-center text-gray-400 mt-8">
+            {places.length > 0
+              ? '선택한 조건에 해당하는 모임이 없습니다. 필터를 변경해보세요.'
+              : '현재 모집 중인 모임이 없습니다. 새로운 모임을 만들어보세요!'}
+          </div>
         ) : (
           sortedPlace.map((place) => {
             const showBadge = newPlaces.includes(place.id);

@@ -34,7 +34,6 @@ function useMap() {
       setUserGps: state.setUserGps
     }))
   );
-
   const { data: user } = useQuery({ queryKey: ['user'], queryFn: loginUser });
 
   const mapRef = useRef(null);

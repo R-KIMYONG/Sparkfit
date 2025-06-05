@@ -5,7 +5,7 @@ function usePlaces() {
   const { data: places = [], isPending: placesLoading } = useQuery({
     queryKey: ['places'],
     queryFn: () => placesApi.getPlaces(),
-    staleTime: 10000
+    staleTime: 0
   });
 
   return { places, placesLoading };
