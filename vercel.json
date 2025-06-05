@@ -1,10 +1,10 @@
 {
   "functions": {
     "api/reverse-geocode.js": {
-      "runtime": "vercel-edge@2.0.0"
+      "runtime": "edge"
     },
     "api/forward-geocode.js": {
-      "runtime": "vercel-edge@2.0.0"
+      "runtime": "edge"
     }
   },
   "rewrites": [
