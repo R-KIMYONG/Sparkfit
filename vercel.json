@@ -1,12 +1,4 @@
 {
-  "functions": {
-    "api/reverse-geocode.js": {
-      "runtime": "nodejs18.x"
-    },
-    "api/forward-geocode.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/reverse-geocode",
