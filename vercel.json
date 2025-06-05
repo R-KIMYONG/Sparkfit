@@ -15,7 +15,10 @@
     {
       "source": "/api/forward-geocode",
       "destination": "/api/forward-geocode.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
-  ],
-  "routes": [{ "handle": "filesystem" }, { "src": "/.*", "dest": "/index.html" }]
+  ]
 }
