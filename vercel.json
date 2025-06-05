@@ -10,11 +10,11 @@
   "rewrites": [
     {
       "source": "/api/reverse-geocode",
-      "destination": "/serverless-api/reverse-geocode.js"
+      "destination": "/api/reverse-geocode.js"
     },
     {
       "source": "/api/forward-geocode",
-      "destination": "/serverless-api/forward-geocode.js"
+      "destination": "/api/forward-geocode.js"
     },
     {
       "source": "/(.*)",
