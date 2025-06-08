@@ -26,7 +26,6 @@
 //   }
 // }
 
-
 export const config = {
   runtime: 'edge'
 };
@@ -39,7 +38,7 @@ export default async function handler(req) {
       headers: { 'Content-Type': 'application/json' }
     });
   }
-
+  console.log(11111);
   let fullUrl;
   try {
     const host = req.headers.get('host');
@@ -55,7 +54,7 @@ export default async function handler(req) {
   const { searchParams } = new URL(fullUrl);
   const lat = searchParams.get('lat');
   const lng = searchParams.get('lng');
-
+  console.log(111);
   if (!lat || !lng) {
     return new Response(JSON.stringify({ error: 'Missing coordinates' }), {
       status: 400,
@@ -65,9 +64,10 @@ export default async function handler(req) {
 
   const NAVER_CLIENT_ID = process.env.VITE_NCP_CLIENT_ID;
   const NAVER_CLIENT_SECRET = process.env.VITE_NCP_CLIENT_SECRET;
+  console.log('1111111111111111', NAVER_CLIENT_ID);
 
   const response = await fetch(
-    `https://naveropenapi.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&orders=roadaddr,addr&output=json`,
+    `https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&output=json&orders=legalcode,admcode,addr,roadaddr`,
     {
       headers: {
         'X-NCP-APIGW-API-KEY-ID': NAVER_CLIENT_ID,
@@ -79,8 +79,19 @@ export default async function handler(req) {
 
   const data = await response.json();
 
-  return new Response(JSON.stringify(data), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' }
-  });
+  return new Response(
+    JSON.stringify({
+      debug: {
+        lat,
+        lng,
+        clientId: NAVER_CLIENT_ID,
+        secretPresent: !!NAVER_CLIENT_SECRET
+      },
+      result: data
+    }),
+    {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    }
+  );
 }
