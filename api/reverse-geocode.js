@@ -81,9 +81,10 @@ export default async function handler(req) {
   return new Response(
     JSON.stringify({
       debug: {
-        lat: '37.5',
-        lng: '127.0',
-        clientId: 'abc123...',
+        lat,
+        lng,
+        clientId: NAVER_CLIENT_ID,
+        clientKey: NAVER_CLIENT_SECRET,
         secretPresent: true
       },
       result: data
