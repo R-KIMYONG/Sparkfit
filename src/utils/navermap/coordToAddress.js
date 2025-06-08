@@ -113,10 +113,18 @@ async function searchCoordinateToAddress(
   try {
     const response = await fetch(`/api/reverse-geocode?lat=${latlng.y}&lng=${latlng.x}`);
 
-    const data = await response.json();
-
+    // const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      return new Response(JSON.stringify({ error: 'Failed to parse JSON', raw: await response.text() }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     const items = data?.results || [];
-
+    console.log(data);
     const roadItem = items.find((item) => item.name === 'roadaddr');
     const jibunItem = items.find((item) => item.name === 'addr');
 

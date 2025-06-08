@@ -27,7 +27,6 @@ app.get('/api/reverse-geocode', async (req, res) => {
     );
 
     const data = await response.json();
-
     // 네이버에서 에러 내려준 경우 체크
     if (data.error) {
       console.error('❌ Naver API Error:', data.error);
