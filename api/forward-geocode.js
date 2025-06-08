@@ -65,7 +65,7 @@ export default async function handler(req) {
   const NAVER_CLIENT_SECRET = process.env.VITE_NCP_CLIENT_SECRET;
 
   const response = await fetch(
-    `https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode?query=${encodeURIComponent(query)}`,
+    `https://maps.apigw.ntruss.com/map-geocode/v2/geocode?query=${encodeURIComponent(query)}`,
     {
       headers: {
         'X-NCP-APIGW-API-KEY-ID': NAVER_CLIENT_ID,
