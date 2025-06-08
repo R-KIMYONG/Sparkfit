@@ -67,7 +67,7 @@ export default async function handler(req) {
   console.log('1111111111111111', NAVER_CLIENT_ID);
 
   const response = await fetch(
-    `https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&output=json&orders=legalcode,admcode,addr,roadaddr`,
+    `https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&output=json&orders=legalcode,admcode,addr,roadaddr&output=xml`,
     {
       headers: {
         'X-NCP-APIGW-API-KEY-ID': NAVER_CLIENT_ID,
