@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/reverse-geocode.js": {
-      "runtime": "edge"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/reverse-geocode",
