@@ -38,7 +38,7 @@ export default async function handler(req) {
       headers: { 'Content-Type': 'application/json' }
     });
   }
-  console.log(11111);
+
   let fullUrl;
   try {
     const host = req.headers.get('host');
@@ -54,7 +54,7 @@ export default async function handler(req) {
   const { searchParams } = new URL(fullUrl);
   const lat = searchParams.get('lat');
   const lng = searchParams.get('lng');
-  console.log(111);
+
   if (!lat || !lng) {
     return new Response(JSON.stringify({ error: 'Missing coordinates' }), {
       status: 400,
@@ -64,14 +64,13 @@ export default async function handler(req) {
 
   const NAVER_CLIENT_ID = process.env.VITE_NCP_CLIENT_ID;
   const NAVER_CLIENT_SECRET = process.env.VITE_NCP_CLIENT_SECRET;
-  console.log('1111111111111111', NAVER_CLIENT_ID);
 
   const response = await fetch(
-    `https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&output=json&orders=legalcode,admcode,addr,roadaddr&output=xml`,
+    `https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&orders=legalcode,admcode,addr,roadaddr&output=json`,
     {
       headers: {
-        'X-NCP-APIGW-API-KEY-ID': NAVER_CLIENT_ID,
-        'X-NCP-APIGW-API-KEY': NAVER_CLIENT_SECRET
+        'x-ncp-apigw-api-key-id': NAVER_CLIENT_ID,
+        'x-ncp-apigw-api-key': NAVER_CLIENT_SECRET
       },
       next: { revalidate: 60 } // 선택: edge cache 사용 시
     }
@@ -82,10 +81,10 @@ export default async function handler(req) {
   return new Response(
     JSON.stringify({
       debug: {
-        lat,
-        lng,
-        clientId: NAVER_CLIENT_ID,
-        secretPresent: !!NAVER_CLIENT_SECRET
+        lat: '37.5',
+        lng: '127.0',
+        clientId: 'abc123...',
+        secretPresent: true
       },
       result: data
     }),
