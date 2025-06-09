@@ -173,20 +173,30 @@ async function searchCoordinateToAddress(
       const infoWindowInnerContent = infoWindow.getContentElement();
       const infoWindowOuterContent = infoWindowInnerContent.parentNode.parentNode;
 
-      infoWindowInnerContent.parentNode.style.width = 'fit-content';
-      infoWindowInnerContent.parentNode.style.height = 'fit-content';
-      infoWindowInnerContent.parentNode.style.minWidth = isMobile() ? '250px' : '320px';
-      infoWindowInnerContent.parentNode.style.maxWidth = isMobile() ? '250px' : '320px';
-      infoWindowInnerContent.parentNode.style.fontSize = isMobile() ? '8px' : '12px';
+      // infoWindowInnerContent.parentNode.style.width = 'fit-content';
+      // infoWindowInnerContent.parentNode.style.height = 'fit-content';
+      // infoWindowInnerContent.parentNode.style.minWidth = isMobile() ? '250px' : '300px';
+      // infoWindowInnerContent.parentNode.style.maxWidth = isMobile() ? '250px' : '300px';
+      // infoWindowInnerContent.parentNode.style.fontSize = isMobile() ? '8px' : '12px';
+
+      const parentEl = infoWindowInnerContent.parentNode;
+
+      parentEl.style.display = 'inline-block'; // 중요: 콘텐츠 크기만큼만 차지
+      parentEl.style.width = 'auto';
+      parentEl.style.height = 'auto';
+      parentEl.style.maxWidth = isMobile() ? '90vw' : '400px'; // 뷰포트 기준 제한
+      parentEl.style.minWidth = 'fit-content'; // 내용 최소 크기 보장
+      parentEl.style.boxSizing = 'border-box';
+      parentEl.style.fontSize = isMobile() ? '8px' : '12px';
 
       const addressCount = htmlAddresses.length; // 예: region + 지번 + 도로명
 
       let offsetY = -88;
 
       if (addressCount >= 3) {
-        offsetY = -120;
+        offsetY = -145;
       } else if (addressCount === 2) {
-        offsetY = -100;
+        offsetY = -125;
       } else {
         offsetY = -90;
       }
