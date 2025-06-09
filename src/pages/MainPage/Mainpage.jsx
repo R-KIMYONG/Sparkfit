@@ -143,8 +143,6 @@ function Mainpage({ user = null, contracts = [] }) {
         naverMap.setCenter(location);
         naverMap.setZoom(16);
 
-        if (currentLocationMarker) currentLocationMarker.setMap(null);
-
         const marker = new window.naver.maps.Marker({
           position: location,
           map: naverMap,
