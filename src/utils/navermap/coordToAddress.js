@@ -185,7 +185,7 @@ async function searchCoordinateToAddress(
       parentEl.style.width = 'auto';
       parentEl.style.height = 'auto';
       parentEl.style.maxWidth = isMobile() ? '90vw' : '400px'; // 뷰포트 기준 제한
-      parentEl.style.minWidth = 'fit-content'; // 내용 최소 크기 보장
+      parentEl.style.minWidth = '140px'; 
       parentEl.style.boxSizing = 'border-box';
       parentEl.style.fontSize = isMobile() ? '8px' : '12px';
 

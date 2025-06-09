@@ -128,6 +128,41 @@ function Mainpage({ user = null, contracts = [] }) {
     }
   }, [places, naverMap, basicMarker, navigate, user, contracts]);
 
+  const moveToCurrentLocation = () => {
+    if (!naverMap || !navigator.geolocation) {
+      alert('현재 위치 정보를 가져올 수 없습니다.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        const location = new window.naver.maps.LatLng(lat, lng);
+        naverMap.setCenter(location);
+        naverMap.setZoom(16);
+
+        if (currentLocationMarker) currentLocationMarker.setMap(null);
+
+        const marker = new window.naver.maps.Marker({
+          position: location,
+          map: naverMap,
+          icon: {
+            content: `<div style="width:12px;height:12px;border:2px solid #2563eb;background:white;border-radius:50%;"></div>`,
+            anchor: new window.naver.maps.Point(6, 6)
+          }
+        });
+
+        setCurrentLocationMarker(marker);
+      },
+      (error) => {
+        alert('위치 정보 접근이 거부되었거나 오류가 발생했습니다.');
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
   // 모임만들기 버튼 클릭시 동작 여기에
   useEffect(() => {
     const handleSelectButtonDom = (e) => {
@@ -165,6 +200,13 @@ function Mainpage({ user = null, contracts = [] }) {
             ref={searchButtonRef}
           >
             검색
+          </button>
+          <button
+            type="button"
+            onClick={moveToCurrentLocation}
+            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 font-medium py-1 px-2 rounded text-xs"
+          >
+            내 위치
           </button>
         </form>
         <div id="map01" className="h-full w-full" />
