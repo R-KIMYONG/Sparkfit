@@ -149,7 +149,7 @@ const CreateGroupModal = ({ close }) => {
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
-      address: selectedGeoData?.address?.jibunAddress || ''
+      address: selectedGeoData?.address?.roadAddress || ''
     }));
   }, [selectedGeoData]);
 
