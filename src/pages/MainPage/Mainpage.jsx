@@ -148,7 +148,6 @@ function Mainpage({ user = null, contracts = [] }) {
       (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        console.log(position);
         const location = new window.naver.maps.LatLng(lat, lng);
 
         Swal.close();

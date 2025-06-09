@@ -1,7 +1,6 @@
 import searchAddressToCoordinate from './addressToCoord';
 import searchCoordinateToAddress from './coordToAddress';
 
-let isClickListenerRegistered = false;
 function initGeocoder(
   infoWindow,
   map,
@@ -18,18 +17,15 @@ function initGeocoder(
   //   marker.setPosition(e.coord);
   // });
 
-  if (!isClickListenerRegistered) {
-    map.addListener('click', (e) => {
-      searchCoordinateToAddress(infoWindow, map, e.coord, setSelectButtonDom, setSelectedGeoData, marker, user);
+  map.addListener('click', (e) => {
+    searchCoordinateToAddress(infoWindow, map, e.coord, setSelectButtonDom, setSelectedGeoData, marker, user);
 
-      // 📌 마커를 클릭한 위치로 이동 + 지도에 표시
-      if (marker) {
-        marker.setPosition(e.coord);
-        marker.setMap(map);
-      }
-    });
-    isClickListenerRegistered = true;
-  }
+    // 마커를 클릭한 위치로 이동 + 지도에 표시
+    if (marker) {
+      marker.setPosition(e.coord);
+      marker.setMap(map);
+    }
+  });
 
   searchInputRef.addEventListener('keydown', (e) => {
     let keyCode = e.which;

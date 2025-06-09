@@ -119,7 +119,7 @@ export default function Sidebar() {
         <div className="h-calc-full-minus-110 w-11 mx-auto flex flex-col justify-between gap-14">
           {/* 로고 */}
           <h1 className="w-logowidth h-logoheight mx-auto">
-            <Link className="block size-full" to="/">
+            <Link className="block size-full" to="/main">
               <img className="size-full block" src={logo} alt="logo" />
             </Link>
           </h1>
