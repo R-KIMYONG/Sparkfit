@@ -78,20 +78,8 @@ export default async function handler(req) {
 
   const data = await response.json();
 
-  return new Response(
-    JSON.stringify({
-      debug: {
-        lat,
-        lng,
-        clientId: NAVER_CLIENT_ID,
-        clientKey: NAVER_CLIENT_SECRET,
-        secretPresent: true
-      },
-      result: data
-    }),
-    {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    }
-  );
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
