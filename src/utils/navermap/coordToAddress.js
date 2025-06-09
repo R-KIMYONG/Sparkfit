@@ -123,15 +123,15 @@ async function searchCoordinateToAddress(
         headers: { 'Content-Type': 'application/json' }
       });
     }
-    const items = data?.results || [];
-    console.log(data);
+    // const items = data?.results || [];
+    const items = Array.isArray(data?.result?.results) ? data.result.results : data?.results || [];
+
     const roadItem = items.find((item) => item.name === 'roadaddr');
     const jibunItem = items.find((item) => item.name === 'addr');
-    console.log('items가 이거다', items);
+
     const roadAddressFull = makeAddress(roadItem);
     const jibunAddressFull = makeAddress(jibunItem);
-    console.log('도로명이 잘못됬나?', roadAddressFull);
-    console.log('지번주소가 잘못됬나?', jibunAddressFull);
+
     const { topAddress, roadDetail, jibunDetail } = commonAddress(roadAddressFull, jibunAddressFull);
 
     const htmlAddresses = [];
@@ -139,7 +139,7 @@ async function searchCoordinateToAddress(
     if (topAddress) htmlAddresses.push(topAddress);
     if (jibunDetail) htmlAddresses.push(`[지번 주소] ${jibunDetail}`);
     if (roadDetail) htmlAddresses.push(`[도로명 주소] ${roadDetail}`);
-    console.log('최종 주소 집합소', htmlAddresses);
+
     setSelectedGeoData({
       address: {
         jibunAddress: roadAddressFull ?? '',
