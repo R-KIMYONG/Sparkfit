@@ -39,12 +39,8 @@ function useMap() {
   const mapRef = useRef(null);
 
   const initializeMap = useCallback((gps) => {
-    const center =
-      gps?.lat && gps?.long
-        ? new window.naver.maps.LatLng(gps.lat, gps.long)
-        : new window.naver.maps.LatLng(...INITIAL_CENTER);
     const mapOptions = {
-      center,
+      center: new window.naver.maps.LatLng(...gps),
       zoom: INITIAL_ZOOM,
       scaleControl: false,
       logoControl: false,
@@ -71,8 +67,8 @@ function useMap() {
     mapRef.current = map;
 
     const marker = new window.naver.maps.Marker({
-      position: new window.naver.maps.LatLng(gps.lat, gps.long),
-      map: map
+      position: new window.naver.maps.LatLng(...gps),
+      map
     });
     setBasicMarker(marker);
   }, []);
@@ -80,8 +76,9 @@ function useMap() {
   // 초기에 사용자의 위치 정보를 가져옴
   useLayoutEffect(() => {
     // console.log('초기 gps =>', userGps);
-    // console.log(gps)
+
     if (gps) return;
+
     const success = ({ coords }) => {
       const gpsData = {
         lat: coords.latitude,
@@ -97,9 +94,6 @@ function useMap() {
           ? '위치 정보를 제공하지 않으면 일부 기능을 사용할 수 없습니다.'
           : '위치 정보를 가져오는 중 오류가 발생했습니다.';
       swal('warning', message);
-
-      setGps({ lat: INITIAL_CENTER[0], long: INITIAL_CENTER[1] });
-      Swal.close();
     };
     const getUserLocation = () => {
       if (!navigator.geolocation) {
@@ -114,27 +108,23 @@ function useMap() {
         showCancelButton: false,
         showConfirmButton: false
       });
-      navigator.geolocation.getCurrentPosition(success, error);
+
+      navigator.geolocation.getCurrentPosition(success, error, {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 0
+      });
     };
     getUserLocation();
   }, [setGps, gps]);
 
-  // 최초 실행
   useEffect(() => {
     const mapDiv = document.getElementById('map01');
-    if (gps && mapDiv) {
-      initializeMap(gps);
-    }
-  }, [gps, initializeMap]);
+    if (mapDiv) initializeMap(INITIAL_CENTER);
 
-  useEffect(() => {
-    const searchInput = document.getElementById('search-input');
-    const searchButton = document.getElementById('search-button');
-    if (searchInput && searchButton) {
-      setSearchInput(searchInput);
-      setSearchButton(searchButton);
-    }
-  }, []);
+    setSearchInput(document.getElementById('search-input'));
+    setSearchButton(document.getElementById('search-button'));
+  }, [initializeMap]);
 
   // 사용자 gps 값 저장 성공시 실행
   useEffect(() => {
