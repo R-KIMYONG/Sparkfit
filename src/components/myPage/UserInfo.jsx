@@ -52,7 +52,7 @@ const UserInfo = () => {
       <h3 className="flex gap-2 border-b-2 border-slate-300 text-lg items-center pb-2">
         <RiUser3Line />내 정보
       </h3>
-      <div className="flex rounded-2xl p-5 gap-4 bg-customBackground justify-between items-center mt-8 box-border">
+      <div className="flex rounded-2xl p-5 gap-4 bg-customBackground justify-between items-center box-border">
         <div className="flex flex-wrap items-center gap-8 w-[90%]">
           <div className="flex items-center gap-8">
             <div className="flex items-center w-[3rem] h-[3rem] rounded-ful overflow-hidden">
