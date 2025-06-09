@@ -8,6 +8,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useMap from '../../hooks/useMap';
 import useCreatedPlaceModal from '@/zustand/createdPlaceModal.store';
+import Swal from 'sweetalert2';
 
 function Mainpage({ user = null, contracts = [] }) {
   const navigate = useNavigate();
@@ -18,7 +19,6 @@ function Mainpage({ user = null, contracts = [] }) {
   const { naverMap, basicMarker, infoWindow, makeGatherButtonDom, selectedGeoData } = useMap();
   const { places } = usePlaces();
   const queryClient = useQueryClient();
-
   const prevPlacesRef = useRef(null);
   const allInfoWindowsRef = useRef(null);
   const allMarkersRef = useRef(null);
@@ -130,32 +130,46 @@ function Mainpage({ user = null, contracts = [] }) {
 
   const moveToCurrentLocation = () => {
     if (!naverMap || !navigator.geolocation) {
-      alert('현재 위치 정보를 가져올 수 없습니다.');
+      Swal.fire({
+        icon: 'error',
+        title: '위치 정보 오류',
+        text: '현재 위치 정보를 가져올 수 없습니다.',
+        confirmButtonColor: '#3085d6'
+      });
       return;
     }
+    Swal.fire({
+      title: '현재 위치를 확인 중입니다...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-
+        console.log(22222);
         const location = new window.naver.maps.LatLng(lat, lng);
+
+        Swal.close();
+
+        // 지도 중심을 현재 위치로 이동
         naverMap.setCenter(location);
         naverMap.setZoom(16);
 
-        const marker = new window.naver.maps.Marker({
-          position: location,
-          map: naverMap,
-          icon: {
-            content: `<div style="width:12px;height:12px;border:2px solid #2563eb;background:white;border-radius:50%;"></div>`,
-            anchor: new window.naver.maps.Point(6, 6)
-          }
-        });
-
-        setCurrentLocationMarker(marker);
+        if (allMarkersRef.current) {
+          checkForMarkersRendering(naverMap, allMarkersRef.current);
+        }
       },
       (error) => {
-        alert('위치 정보 접근이 거부되었거나 오류가 발생했습니다.');
+        Swal.close();
+        Swal.fire({
+          icon: 'error',
+          title: '위치 접근 실패',
+          text: '위치 정보 접근이 거부되었거나 오류가 발생했습니다.',
+          confirmButtonColor: '#3085d6'
+        });
+        console.error('Geolocation error:', error);
       },
       { enableHighAccuracy: true }
     );
@@ -183,7 +197,7 @@ function Mainpage({ user = null, contracts = [] }) {
     <>
       {openCreateGroupModal && <CreateGroupModal close={handleModalClose} />}
       <section className="relative flex w-dvw h-dvh">
-        <form className="sm:left-[15%] md:left-[10%] lg:left-[7%] absolute z-10 flex justify-between items-center gap-1 rounded bg-white p-1 border border-gray-300 box-border left-5 top-5 ml-1 w-64">
+        <form className="sm:left-[15%] md:left-[10%] lg:left-[7%] absolute z-10 flex justify-between items-center gap-1 rounded bg-white p-1 border border-gray-300 box-border left-5 top-5 ml-1 w-80">
           <input
             type="search"
             id="search-input"
@@ -194,7 +208,7 @@ function Mainpage({ user = null, contracts = [] }) {
           <button
             type="submit"
             id="search-button"
-            className="bg-btn-blue w-1/5 hover:bg-blue-4000 text-white font-bold py-1 px-2 rounded text-xs"
+            className="bg-btn-blue hover:bg-blue-4000 text-white font-bold py-1 px-2 rounded text-xs w-[24%]"
             ref={searchButtonRef}
           >
             검색
@@ -202,7 +216,7 @@ function Mainpage({ user = null, contracts = [] }) {
           <button
             type="button"
             onClick={moveToCurrentLocation}
-            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 font-medium py-1 px-2 rounded text-xs"
+            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 font-medium py-1 px-2 rounded text-xs w-[24%]"
           >
             내 위치
           </button>
