@@ -39,8 +39,12 @@ function useMap() {
   const mapRef = useRef(null);
 
   const initializeMap = useCallback((gps) => {
+    const center =
+      gps?.lat && gps?.long
+        ? new window.naver.maps.LatLng(gps.lat, gps.long)
+        : new window.naver.maps.LatLng(...INITIAL_CENTER);
     const mapOptions = {
-      center: new window.naver.maps.LatLng(...gps),
+      center,
       zoom: INITIAL_ZOOM,
       scaleControl: false,
       logoControl: false,
@@ -76,6 +80,7 @@ function useMap() {
   // 초기에 사용자의 위치 정보를 가져옴
   useLayoutEffect(() => {
     // console.log('초기 gps =>', userGps);
+    console.log(gps);
     if (gps) return;
     const success = ({ coords }) => {
       const gpsData = {
@@ -87,29 +92,26 @@ function useMap() {
     };
 
     const error = (err) => {
-      if (err.code === err.PERMISSION_DENIED) {
-        swal('warning', '위치 정보를 제공하지 않으면 일부 기능을 사용할 수 없습니다.');
-        return;
-      } else {
-        swal('error', '위치 정보를 가져오는 중 오류가 발생했습니다.');
-        return;
-      }
+      const message =
+        err.code === err.PERMISSION_DENIED
+          ? '위치 정보를 제공하지 않으면 일부 기능을 사용할 수 없습니다.'
+          : '위치 정보를 가져오는 중 오류가 발생했습니다.';
+      swal('warning', message);
     };
     const getUserLocation = () => {
       if (!navigator.geolocation) {
         swal('error', '위치정보가 지원되지 않습니다');
         return;
-      } else {
-        Swal.fire({
-          title: '위치 정보 가져오는 중',
-          text: '당신의 위치로 이동 중 🏃🏻‍♀️',
-          allowOutsideClick: false,
-          showLoaderOnConfirm: false,
-          showCancelButton: false,
-          showConfirmButton: false
-        });
-        navigator.geolocation.getCurrentPosition(success, error);
       }
+      Swal.fire({
+        title: '위치 정보 가져오는 중',
+        text: '당신의 위치로 이동 중 🏃🏻‍♀️',
+        allowOutsideClick: false,
+        showLoaderOnConfirm: false,
+        showCancelButton: false,
+        showConfirmButton: false
+      });
+      navigator.geolocation.getCurrentPosition(success, error);
     };
     getUserLocation();
   }, [setGps, gps]);
@@ -130,8 +132,9 @@ function useMap() {
   // 사용자 gps 값 저장 성공시 실행
   useEffect(() => {
     if (gps && basicMarker && mapRef.current && window.naver) {
-      mapRef.current.setCenter(new window.naver.maps.LatLng(gps.lat, gps.long));
-      basicMarker.setPosition(new window.naver.maps.LatLng(gps.lat, gps.long));
+      const userLocation = new window.naver.maps.LatLng(gps.lat, gps.long);
+      mapRef.current.setCenter(userLocation);
+      basicMarker.setPosition(userLocation);
     }
   }, [gps, basicMarker, mapRef]);
 
