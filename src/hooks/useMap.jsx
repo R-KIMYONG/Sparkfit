@@ -110,7 +110,7 @@ function useMap() {
       });
 
       navigator.geolocation.getCurrentPosition(success, error, {
-        enableHighAccuracy: false,
+        enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0
       });

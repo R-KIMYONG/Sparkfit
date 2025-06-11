@@ -157,27 +157,19 @@ async function searchCoordinateToAddress(
       anchorSize: { width: 10, height: 12 }
     });
 
-    const centerPosition = isMobile()
-      ? {
-          x: marker.getPosition().x + 0.001,
-          y: marker.getPosition().y,
-          _lat: marker.getPosition()._lat,
-          _long: marker.getPosition()._long + 0.001
-        }
-      : marker.getPosition();
-
-    map.setCenter(centerPosition);
+    let centerPosition = marker.getPosition();
+    centerPosition = {
+      x: centerPosition.x + 0.0001,
+      y: centerPosition.y,
+      _lat: centerPosition._lat,
+      _long: centerPosition._long + 0.0001
+    };
+    map.setCenter(isMobile() ? centerPosition : marker.getPosition());
     infoWindow.open(map, marker.getPosition());
 
     setTimeout(() => {
       const infoWindowInnerContent = infoWindow.getContentElement();
       const infoWindowOuterContent = infoWindowInnerContent.parentNode.parentNode;
-
-      // infoWindowInnerContent.parentNode.style.width = 'fit-content';
-      // infoWindowInnerContent.parentNode.style.height = 'fit-content';
-      // infoWindowInnerContent.parentNode.style.minWidth = isMobile() ? '250px' : '300px';
-      // infoWindowInnerContent.parentNode.style.maxWidth = isMobile() ? '250px' : '300px';
-      // infoWindowInnerContent.parentNode.style.fontSize = isMobile() ? '8px' : '12px';
 
       const parentEl = infoWindowInnerContent.parentNode;
 
@@ -185,20 +177,30 @@ async function searchCoordinateToAddress(
       parentEl.style.width = 'auto';
       parentEl.style.height = 'auto';
       parentEl.style.maxWidth = isMobile() ? '90vw' : '400px'; // 뷰포트 기준 제한
-      parentEl.style.minWidth = '140px'; 
+      parentEl.style.minWidth = '140px';
       parentEl.style.boxSizing = 'border-box';
-      parentEl.style.fontSize = isMobile() ? '8px' : '12px';
+      parentEl.style.fontSize = isMobile() ? '10px' : '12px';
 
       const addressCount = htmlAddresses.length; // 예: region + 지번 + 도로명
 
       let offsetY = -88;
 
-      if (addressCount >= 3) {
-        offsetY = -145;
-      } else if (addressCount === 2) {
-        offsetY = -125;
+      if (isMobile()) {
+        if (addressCount >= 3) {
+          offsetY = -130;
+        } else if (addressCount === 2) {
+          offsetY = -115;
+        } else {
+          offsetY = -110;
+        }
       } else {
-        offsetY = -90;
+        if (addressCount >= 3) {
+          offsetY = -145;
+        } else if (addressCount === 2) {
+          offsetY = -125;
+        } else {
+          offsetY = -90;
+        }
       }
 
       infoWindowOuterContent.style.top = `${offsetY}px`;
