@@ -49,7 +49,7 @@ const PlaceItem = ({ place, showBadge }) => {
           {/* 모임 제목/해시태그/버튼 */}
           <div className="w-full">
             <div className="flex justify-between items-center">
-              <div className="flex items-center flex-1 mb-3 gap-2">
+              <div className="flex items-center flex-1 gap-2">
                 <h2 className="text-lg font-semibold">{place.gather_name}</h2>
                 {showBadge && <NewBadge />}
               </div>
@@ -62,13 +62,13 @@ const PlaceItem = ({ place, showBadge }) => {
                 </button>
               </div>
             </div>
-            <ul className="flex gap-2.5">
-              <li className="rounded-full bg-[#efefef] px-3 py-1.5 line-height-none text-xs">{place.sports_name}</li>
-              <li className="py-1.5 line-height-none text-xs">{place.region}</li>
-              <li className="py-1.5 line-height-none text-xs text-[#82C0F9]">
+            <p className="rounded-full bg-[#efefef] px-3 py-1.5 text-xs my-2 inline-block">{place.sports_name}</p>
+            <div className="flex gap-2.5">
+              <p className="py-1.5 line-height-none text-xs">{place.region}</p>
+              <p className="py-1.5 line-height-none text-xs text-[#82C0F9]">
                 {typeof place.distance === 'number' ? `${place.distance.toFixed(1)} km 이내` : '거리 정보 없음'}
-              </li>
-            </ul>
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <span className="font-medium text-gray-600">👤 모임장:</span>

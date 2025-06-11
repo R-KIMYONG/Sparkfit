@@ -156,9 +156,19 @@ async function searchAddressToCoordinate(
     return;
   }
   try {
+    Swal.fire({
+      title: '주소 검색 중',
+      text: '검색 결과를 불러오는 중입니다...',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
     const response = await fetch(`/api/forward-geocode?query=${encodeURIComponent(searchedValue)}`);
     const data = await response.json();
 
+    Swal.close();
     if (!data || !data.addresses || data.addresses.length === 0) {
       if (!Swal.getPopup()) {
         Swal.fire({
@@ -209,27 +219,19 @@ async function searchAddressToCoordinate(
     marker.setMap(map);
     marker.setPosition(point);
 
-    const centerPosition = isMobile()
-      ? {
-          x: point.x + 0.001,
-          y: point.y,
-          _lat: point._lat,
-          _long: point._long + 0.001
-        }
-      : point;
-
-    map.setCenter(centerPosition);
+    let centerPosition = point;
+    centerPosition = {
+      x: centerPosition.x + 0.0001,
+      y: centerPosition.y,
+      _lat: centerPosition._lat,
+      _long: centerPosition._long + 0.0001
+    };
+    map.setCenter(isMobile() ? centerPosition : point);
     infoWindow.open(map, point);
 
     setTimeout(() => {
       const infoWindowInnerContent = infoWindow.getContentElement();
       const infoWindowOuterContent = infoWindowInnerContent.parentNode.parentNode;
-
-      // infoWindowInnerContent.parentNode.style.width = 'fit-content';
-      // infoWindowInnerContent.parentNode.style.height = 'fit-content';
-      // infoWindowInnerContent.parentNode.style.minWidth = isMobile() ? '250px' : '300px';
-      // infoWindowInnerContent.parentNode.style.maxWidth = isMobile() ? '250px' : '300px';
-      // infoWindowInnerContent.parentNode.style.fontSize = isMobile() ? '9px' : '12px';
 
       const parentEl = infoWindowInnerContent.parentNode;
 
@@ -239,17 +241,27 @@ async function searchAddressToCoordinate(
       parentEl.style.maxWidth = isMobile() ? '90vw' : '400px'; // 뷰포트 기준 제한
       parentEl.style.minWidth = '140px';
       parentEl.style.boxSizing = 'border-box';
-      parentEl.style.fontSize = isMobile() ? '8px' : '12px';
+      parentEl.style.fontSize = isMobile() ? '10px' : '12px';
       const addressCount = htmlAddresses.length;
 
       let offsetY = -88;
 
-      if (addressCount >= 3) {
-        offsetY = -145;
-      } else if (addressCount === 2) {
-        offsetY = -125;
+      if (isMobile()) {
+        if (addressCount >= 3) {
+          offsetY = -130;
+        } else if (addressCount === 2) {
+          offsetY = -115;
+        } else {
+          offsetY = -110;
+        }
       } else {
-        offsetY = -90;
+        if (addressCount >= 3) {
+          offsetY = -145;
+        } else if (addressCount === 2) {
+          offsetY = -125;
+        } else {
+          offsetY = -90;
+        }
       }
 
       infoWindowOuterContent.style.top = `${offsetY}px`;
