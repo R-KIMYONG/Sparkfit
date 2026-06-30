@@ -144,34 +144,45 @@ function Mainpage({ user = null, contracts = [] }) {
       didOpen: () => Swal.showLoading()
     });
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        const location = new window.naver.maps.LatLng(lat, lng);
+    const onSuccess = (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const location = new window.naver.maps.LatLng(lat, lng);
 
-        Swal.close();
+      Swal.close();
 
-        // 지도 중심을 현재 위치로 이동
-        naverMap.setCenter(location);
-        naverMap.setZoom(16);
+      // 지도 중심을 현재 위치로 이동
+      naverMap.setCenter(location);
+      naverMap.setZoom(16);
 
-        if (allMarkersRef.current) {
-          checkForMarkersRendering(naverMap, allMarkersRef.current);
-        }
-      },
-      (error) => {
-        Swal.close();
-        Swal.fire({
-          icon: 'error',
-          title: '위치 접근 실패',
-          text: '위치 정보 접근이 거부되었거나 오류가 발생했습니다.',
-          confirmButtonColor: '#3085d6'
-        });
-        console.error('Geolocation error:', error);
-      },
-      { enableHighAccuracy: true }
-    );
+      if (allMarkersRef.current) {
+        checkForMarkersRendering(naverMap, allMarkersRef.current);
+      }
+    };
+
+    const onError = (error) => {
+      Swal.close();
+      Swal.fire({
+        icon: 'error',
+        title: '위치 접근 실패',
+        text: '위치 정보 접근이 거부되었거나 오류가 발생했습니다.',
+        confirmButtonColor: '#3085d6'
+      });
+      console.error('Geolocation error:', error);
+    };
+
+    // 고정밀 실패 시(GPS 없는 데스크톱 등) 저정밀로 1회 폴백
+    const onHighAccuracyError = (error) => {
+      if (error.code === error.POSITION_UNAVAILABLE || error.code === error.TIMEOUT) {
+        navigator.geolocation.getCurrentPosition(onSuccess, onError, { enableHighAccuracy: false });
+        return;
+      }
+      onError(error);
+    };
+
+    navigator.geolocation.getCurrentPosition(onSuccess, onHighAccuracyError, {
+      enableHighAccuracy: true
+    });
   };
 
   // 모임만들기 버튼 클릭시 동작 여기에
