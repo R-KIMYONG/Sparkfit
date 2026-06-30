@@ -38,11 +38,13 @@ const MyPageModal = ({ close, nickname, setNickname, setImage, introduce, setInt
   };
 
   const uploadImageToSupabase = async (file, userId) => {
-    const fileName = `image_${userId}_${Date.now()}`;
+    const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+    const fileName = `image_${userId}_${Date.now()}.${ext}`;
 
     const { error: uploadError } = await supabase.storage.from('imagefile').upload(fileName, file, {
       cacheControl: '3600',
-      upsert: true
+      upsert: true,
+      contentType: file.type
     });
 
     if (uploadError) throw uploadError;

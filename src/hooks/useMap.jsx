@@ -88,6 +88,16 @@ function useMap() {
       Swal.close(); // 위치정보 세팅 후 모달 닫기
     };
 
+    // 고정밀 위치 획득에 실패하면(POSITION_UNAVAILABLE / TIMEOUT) 저정밀로 1회 재시도
+    // GPS 칩이 없는 데스크톱(예: MacBook)에서 kCLErrorLocationUnknown 발생 시 폴백
+    const requestPosition = (highAccuracy, onError) => {
+      navigator.geolocation.getCurrentPosition(success, onError, {
+        enableHighAccuracy: highAccuracy,
+        timeout: 10000,
+        maximumAge: 0
+      });
+    };
+
     const error = (err) => {
       const message =
         err.code === err.PERMISSION_DENIED
@@ -95,6 +105,16 @@ function useMap() {
           : '위치 정보를 가져오는 중 오류가 발생했습니다.';
       swal('warning', message);
     };
+
+    const highAccuracyError = (err) => {
+      // 권한 거부가 아니라 위치 소스를 못 잡은 경우에만 저정밀로 폴백
+      if (err.code === err.POSITION_UNAVAILABLE || err.code === err.TIMEOUT) {
+        requestPosition(false, error);
+        return;
+      }
+      error(err);
+    };
+
     const getUserLocation = () => {
       if (!navigator.geolocation) {
         swal('error', '위치정보가 지원되지 않습니다');
@@ -109,11 +129,7 @@ function useMap() {
         showConfirmButton: false
       });
 
-      navigator.geolocation.getCurrentPosition(success, error, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      });
+      requestPosition(true, highAccuracyError);
     };
     getUserLocation();
   }, [setGps, gps]);
