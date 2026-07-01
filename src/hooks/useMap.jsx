@@ -1,5 +1,6 @@
 import { loginUser } from '@/api/profileApi';
 import searchCoordinateToAddress from '@/utils/navermap/coordToAddress';
+import { getBestLocation } from '@/utils/geolocation';
 import initGeocoder from '@/utils/navermap/initGeocoder';
 import swal from '@/utils/sweetalert/swal';
 import useMapStore from '@/zustand/map.store';
@@ -63,7 +64,6 @@ function useMap() {
     };
 
     const map = new window.naver.maps.Map('map01', mapOptions);
-    // setNaverMap(map);
     mapRef.current = map;
 
     const marker = new window.naver.maps.Marker({
@@ -75,63 +75,32 @@ function useMap() {
 
   // 초기에 사용자의 위치 정보를 가져옴
   useLayoutEffect(() => {
-    // console.log('초기 gps =>', userGps);
-
     if (gps) return;
 
-    const success = ({ coords }) => {
-      const gpsData = {
-        lat: coords.latitude,
-        long: coords.longitude
-      };
-      setGps(gpsData);
-      Swal.close(); // 위치정보 세팅 후 모달 닫기
-    };
+    Swal.fire({
+      title: '위치 정보 가져오는 중',
+      text: '당신의 위치로 이동 중 🏃🏻‍♀️',
+      allowOutsideClick: false,
+      showLoaderOnConfirm: false,
+      showCancelButton: false,
+      showConfirmButton: false
+    });
 
-    // 고정밀 위치 획득에 실패하면(POSITION_UNAVAILABLE / TIMEOUT) 저정밀로 1회 재시도
-    // GPS 칩이 없는 데스크톱(예: MacBook)에서 kCLErrorLocationUnknown 발생 시 폴백
-    const requestPosition = (highAccuracy, onError) => {
-      navigator.geolocation.getCurrentPosition(success, onError, {
-        enableHighAccuracy: highAccuracy,
-        timeout: 10000,
-        maximumAge: 0
-      });
-    };
-
-    const error = (err) => {
-      const message =
-        err.code === err.PERMISSION_DENIED
-          ? '위치 정보를 제공하지 않으면 일부 기능을 사용할 수 없습니다.'
-          : '위치 정보를 가져오는 중 오류가 발생했습니다.';
-      swal('warning', message);
-    };
-
-    const highAccuracyError = (err) => {
-      // 권한 거부가 아니라 위치 소스를 못 잡은 경우에만 저정밀로 폴백
-      if (err.code === err.POSITION_UNAVAILABLE || err.code === err.TIMEOUT) {
-        requestPosition(false, error);
-        return;
+    // Apple 지도처럼 watchPosition으로 정확한 Wi-Fi/GPS 위치를 끈질기게 잡고,
+    // 완전히 실패하면 IP 기반 위치로 폴백한다. (상세 로직은 유틸 참고)
+    const cancel = getBestLocation({
+      onLocated: ({ lat, long }) => {
+        setGps({ lat, long });
+        Swal.close(); // 위치정보 세팅 후 모달 닫기
+      },
+      onError: () => {
+        Swal.close();
+        swal('warning', '위치 정보를 가져오는 중 오류가 발생했습니다.');
       }
-      error(err);
-    };
+    });
 
-    const getUserLocation = () => {
-      if (!navigator.geolocation) {
-        swal('error', '위치정보가 지원되지 않습니다');
-        return;
-      }
-      Swal.fire({
-        title: '위치 정보 가져오는 중',
-        text: '당신의 위치로 이동 중 🏃🏻‍♀️',
-        allowOutsideClick: false,
-        showLoaderOnConfirm: false,
-        showCancelButton: false,
-        showConfirmButton: false
-      });
-
-      requestPosition(true, highAccuracyError);
-    };
-    getUserLocation();
+    // 위치 확정 전에 언마운트되면 진행 중인 watch 정리
+    return cancel;
   }, [setGps, gps]);
 
   useEffect(() => {
@@ -164,10 +133,7 @@ function useMap() {
     let listener = null;
     if (basicMarker && gps && infoWindow && mapRef.current && setMakeGatherButtonDom && window.naver) {
       listener = window.naver.maps.Event.addListener(basicMarker, 'click', () => {
-        if (selectedGeoData) {
-          // console.log(selectedGeoData);
-        } else {
-          // console.log({ lat: gps.lat, long: gps.long });
+        if (!selectedGeoData) {
           searchCoordinateToAddress(
             infoWindow,
             mapRef.current,
